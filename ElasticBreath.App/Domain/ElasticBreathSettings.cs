@@ -2,12 +2,15 @@ namespace ElasticBreath.App.Domain;
 
 public sealed class ElasticBreathSettings
 {
+    public string Language { get; set; } = "zh-CN";
+
     public int MinWorkMinutes { get; set; } = 35;
     public int MaxWorkMinutes { get; set; } = 45;
     public int DefaultRestMinutes { get; set; } = 5;
     public int RestOvertimeMinutes { get; set; } = 8;
     public int MinEffectiveRestMinutes { get; set; } = 3;
     public int AwayThresholdMinutes { get; set; } = 3;
+    public int AutoRestAfterIdleSeconds { get; set; } = 30;
 
     public int PostponeCooldownMinutes { get; set; } = 5;
     public int DailyPostponeLimit { get; set; } = 3;
@@ -34,6 +37,7 @@ public sealed class ElasticBreathSettings
     public TimeSpan RestOvertimeThreshold => TimeSpan.FromMinutes(RestOvertimeMinutes);
     public TimeSpan MinEffectiveRestThreshold => TimeSpan.FromMinutes(MinEffectiveRestMinutes);
     public TimeSpan AwayThreshold => TimeSpan.FromMinutes(AwayThresholdMinutes);
+    public TimeSpan AutoRestAfterIdleThreshold => TimeSpan.FromSeconds(AutoRestAfterIdleSeconds);
     public TimeSpan PostponeCooldown => TimeSpan.FromMinutes(PostponeCooldownMinutes);
     public TimeSpan AutoTransitionCountdown => TimeSpan.FromSeconds(AutoTransitionCountdownSeconds);
     public TimeSpan CornerHoverDuration => TimeSpan.FromSeconds(CornerHoverSeconds);
@@ -46,14 +50,16 @@ public sealed class ElasticBreathSettings
         RestOvertimeMinutes = Math.Max(DefaultRestMinutes, RestOvertimeMinutes);
         MinEffectiveRestMinutes = Math.Clamp(MinEffectiveRestMinutes, 1, RestOvertimeMinutes);
         AwayThresholdMinutes = Math.Max(1, AwayThresholdMinutes);
+        AutoRestAfterIdleSeconds = Math.Clamp(AutoRestAfterIdleSeconds, 10, 600);
         PostponeCooldownMinutes = Math.Max(1, PostponeCooldownMinutes);
         DailyPostponeLimit = Math.Max(0, DailyPostponeLimit);
         AutoTransitionCountdownSeconds = Math.Clamp(AutoTransitionCountdownSeconds, 1, 30);
         CornerHoverSeconds = Math.Clamp(CornerHoverSeconds, 0.5, 5);
-        GlowMaxThicknessPixels = Math.Clamp(GlowMaxThicknessPixels, 12, 120);
+        GlowMaxThicknessPixels = Math.Clamp(GlowMaxThicknessPixels, 12, 600);
         OverlayOpacity = Math.Clamp(OverlayOpacity, 0.1, 0.9);
         ReminderVolumePercent = Math.Clamp(ReminderVolumePercent, 0, 100);
         PreferredDisplay ??= "auto";
+        Language = string.IsNullOrWhiteSpace(Language) ? "zh-CN" : Language;
         return this;
     }
 }

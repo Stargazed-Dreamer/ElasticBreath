@@ -8,7 +8,7 @@ public sealed class BreathEngine : IDisposable
     private sealed class PendingTransition
     {
         public required PendingTransitionKind Kind { get; init; }
-        public required string Message { get; init; }
+        public required string MessageKey { get; init; }
         public required TimeSpan Remaining { get; set; }
     }
 
@@ -27,6 +27,7 @@ public sealed class BreathEngine : IDisposable
     private DateTime _awayPromptSuppressedUntilUtc = DateTime.MinValue;
     private DateTime _idlePromptSuppressedUntilUtc = DateTime.MinValue;
     private bool _remindersPaused;
+    private bool _sessionLocked;
 
     public BreathEngine(ElasticBreathSettings settings, InputMonitor inputMonitor)
     {
@@ -61,6 +62,7 @@ public sealed class BreathEngine : IDisposable
 
     public void StartWorkingManual()
     {
+        _sessionLocked = false;
         _remindersPaused = false;
         _pendingTransition = null;
         switch (_state)
@@ -82,6 +84,7 @@ public sealed class BreathEngine : IDisposable
 
     public void StartRestingManual()
     {
+        _sessionLocked = false;
         _remindersPaused = false;
         _pendingTransition = null;
         _restingCycleElapsed = TimeSpan.Zero;
@@ -152,6 +155,26 @@ public sealed class BreathEngine : IDisposable
         PublishSnapshot();
     }
 
+    public void HandleSessionSwitch(bool isLocked)
+    {
+        _sessionLocked = isLocked;
+        _pendingTransition = null;
+
+        if (isLocked)
+        {
+            if (_state is ElasticBreathState.Working or ElasticBreathState.Resting)
+            {
+                _state = ElasticBreathState.Paused;
+            }
+        }
+        else
+        {
+            _idlePromptSuppressedUntilUtc = DateTime.MinValue;
+        }
+
+        PublishSnapshot();
+    }
+
     private void OnTick(object? sender, EventArgs e)
     {
         var nowUtc = DateTime.UtcNow;
@@ -201,7 +224,7 @@ public sealed class BreathEngine : IDisposable
 
     private void HandleAutomaticTransitions(InputSample sample, DateTime nowUtc)
     {
-        if (_pendingTransition is not null)
+        if (_pendingTransition is not null || _sessionLocked)
         {
             return;
         }
@@ -213,7 +236,7 @@ public sealed class BreathEngine : IDisposable
                 {
                     SchedulePendingTransition(
                         PendingTransitionKind.IdleToWorking,
-                        "Activity detected. Start working in {0}s. Click to cancel.");
+                        "notify.idle_to_working");
                 }
                 break;
 
@@ -222,7 +245,14 @@ public sealed class BreathEngine : IDisposable
                 {
                     SchedulePendingTransition(
                         PendingTransitionKind.WorkingToPaused,
-                        "Away detected. Pause working in {0}s. Click to cancel.");
+                        "notify.working_to_paused");
+                    break;
+                }
+
+                if (sample.IdleDuration >= _settings.AutoRestAfterIdleThreshold)
+                {
+                    _restingCycleElapsed = TimeSpan.Zero;
+                    _state = ElasticBreathState.Resting;
                 }
                 break;
 
@@ -231,7 +261,7 @@ public sealed class BreathEngine : IDisposable
                 {
                     SchedulePendingTransition(
                         PendingTransitionKind.PausedToWorking,
-                        "Welcome back. Resume working in {0}s. Click to stay paused.");
+                        "notify.paused_to_working");
                 }
                 break;
 
@@ -246,13 +276,13 @@ public sealed class BreathEngine : IDisposable
         }
     }
 
-    private void SchedulePendingTransition(PendingTransitionKind kind, string messageTemplate)
+    private void SchedulePendingTransition(PendingTransitionKind kind, string messageKey)
     {
         var seconds = _settings.AutoTransitionCountdownSeconds;
         _pendingTransition = new PendingTransition
         {
             Kind = kind,
-            Message = string.Format(messageTemplate, seconds),
+            MessageKey = messageKey,
             Remaining = TimeSpan.FromSeconds(seconds)
         };
     }
@@ -321,7 +351,7 @@ public sealed class BreathEngine : IDisposable
     {
         var pending = _pendingTransition is null
             ? null
-            : new PendingTransitionSnapshot(_pendingTransition.Kind, _pendingTransition.Message, _pendingTransition.Remaining);
+            : new PendingTransitionSnapshot(_pendingTransition.Kind, _pendingTransition.MessageKey, _pendingTransition.Remaining);
 
         return new EngineSnapshot(
             _state,
@@ -333,6 +363,7 @@ public sealed class BreathEngine : IDisposable
             _totalRestingToday,
             pending,
             _remindersPaused,
+            _sessionLocked,
             DateTimeOffset.Now);
     }
 

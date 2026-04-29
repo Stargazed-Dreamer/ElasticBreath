@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using System.Drawing;
 
 namespace ElasticBreath.App.Interop;
 
@@ -8,6 +9,9 @@ internal static class Win32Native
     private const int WsExTransparent = 0x20;
     private const int WsExToolWindow = 0x80;
     private const int WsExNoActivate = 0x08000000;
+    private const uint SwpNoZOrder = 0x0004;
+    private const uint SwpNoActivate = 0x0010;
+    private const uint SwpShowWindow = 0x0040;
 
     [StructLayout(LayoutKind.Sequential)]
     public struct LastInputInfo
@@ -50,6 +54,16 @@ internal static class Win32Native
     [DllImport("user32.dll", SetLastError = true)]
     private static extern IntPtr SetWindowLongPtr(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
 
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool SetWindowPos(
+        IntPtr hWnd,
+        IntPtr hWndInsertAfter,
+        int x,
+        int y,
+        int cx,
+        int cy,
+        uint uFlags);
+
     public static uint GetLastInputTick()
     {
         var info = new LastInputInfo
@@ -80,5 +94,17 @@ internal static class Win32Native
         var style = GetWindowLongPtr(hwnd, GwlExStyle).ToInt64();
         style |= WsExTransparent | WsExToolWindow | WsExNoActivate;
         _ = SetWindowLongPtr(hwnd, GwlExStyle, new IntPtr(style));
+    }
+
+    public static void SetWindowBoundsPixels(IntPtr hwnd, Rectangle bounds)
+    {
+        _ = SetWindowPos(
+            hwnd,
+            IntPtr.Zero,
+            bounds.Left,
+            bounds.Top,
+            bounds.Width,
+            bounds.Height,
+            SwpNoZOrder | SwpNoActivate | SwpShowWindow);
     }
 }

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ElasticBreath.App")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+725c6bec4a6bb30559f456cd1c31ea82f68025b9")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c177f8b33c73e809b1aedd6ec286ec472c6115ab")]
 [assembly: System.Reflection.AssemblyProductAttribute("ElasticBreath.App")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ElasticBreath.App")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

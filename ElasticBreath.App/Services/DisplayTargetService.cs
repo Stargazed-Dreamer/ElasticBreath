@@ -1,5 +1,4 @@
 using System.Drawing;
-using System.Windows;
 using ElasticBreath.App.Interop;
 using Forms = System.Windows.Forms;
 
@@ -34,8 +33,11 @@ public sealed class DisplayTargetService
         return Forms.Screen.FromPoint(cursor);
     }
 
-    public static Rect ToWpfRect(Rectangle rectangle)
-        => new(rectangle.Left, rectangle.Top, rectangle.Width, rectangle.Height);
+    public bool IsCursorOnScreen(Forms.Screen screen)
+    {
+        var cursor = Forms.Cursor.Position;
+        return screen.Bounds.Contains(cursor);
+    }
 
     public bool IsFullscreenForeground(Forms.Screen targetScreen, IntPtr ignoredWindow)
     {

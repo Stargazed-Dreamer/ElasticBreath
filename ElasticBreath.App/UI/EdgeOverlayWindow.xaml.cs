@@ -3,6 +3,7 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Threading;
 using ElasticBreath.App.Interop;
+using Drawing = System.Drawing;
 using MediaColor = System.Windows.Media.Color;
 using MediaColors = System.Windows.Media.Colors;
 
@@ -29,6 +30,8 @@ public partial class EdgeOverlayWindow : Window
     private EdgeOverlayState _state = EdgeOverlayState.Hidden;
     private bool _enableEdgeGlow = true;
     private bool _showTopProgress;
+    private IntPtr _hwnd;
+    private Drawing.Rectangle _boundsPx = new(0, 0, 1, 1);
 
     public EdgeOverlayWindow()
     {
@@ -43,17 +46,19 @@ public partial class EdgeOverlayWindow : Window
 
         SourceInitialized += (_, _) =>
         {
-            var hwnd = new WindowInteropHelper(this).Handle;
-            Win32Native.SetClickThroughNoActivate(hwnd);
+            _hwnd = new WindowInteropHelper(this).Handle;
+            Win32Native.SetClickThroughNoActivate(_hwnd);
+            Win32Native.SetWindowBoundsPixels(_hwnd, _boundsPx);
         };
     }
 
-    public void SetBounds(Rect bounds)
+    public void SetBounds(Drawing.Rectangle bounds)
     {
-        Left = bounds.Left;
-        Top = bounds.Top;
-        Width = bounds.Width;
-        Height = bounds.Height;
+        _boundsPx = bounds;
+        if (_hwnd != IntPtr.Zero)
+        {
+            Win32Native.SetWindowBoundsPixels(_hwnd, _boundsPx);
+        }
     }
 
     public void UpdateOverlay(
@@ -85,6 +90,10 @@ public partial class EdgeOverlayWindow : Window
         if (!IsVisible)
         {
             Show();
+        }
+        if (_hwnd != IntPtr.Zero)
+        {
+            Win32Native.SetWindowBoundsPixels(_hwnd, _boundsPx);
         }
 
         TopProgressHost.Visibility = showTopProgress ? Visibility.Visible : Visibility.Collapsed;
@@ -126,17 +135,17 @@ public partial class EdgeOverlayWindow : Window
             LeftGlow.Width = _glowThickness;
             RightGlow.Width = _glowThickness;
 
-            TopGlow.Fill = new LinearGradientBrush(glowColor, transparent, new Point(0.5, 0), new Point(0.5, 1));
-            BottomGlow.Fill = new LinearGradientBrush(glowColor, transparent, new Point(0.5, 1), new Point(0.5, 0));
-            LeftGlow.Fill = new LinearGradientBrush(glowColor, transparent, new Point(0, 0.5), new Point(1, 0.5));
-            RightGlow.Fill = new LinearGradientBrush(glowColor, transparent, new Point(1, 0.5), new Point(0, 0.5));
+            TopGlow.Fill = new LinearGradientBrush(glowColor, transparent, new System.Windows.Point(0.5, 0), new System.Windows.Point(0.5, 1));
+            BottomGlow.Fill = new LinearGradientBrush(glowColor, transparent, new System.Windows.Point(0.5, 1), new System.Windows.Point(0.5, 0));
+            LeftGlow.Fill = new LinearGradientBrush(glowColor, transparent, new System.Windows.Point(0, 0.5), new System.Windows.Point(1, 0.5));
+            RightGlow.Fill = new LinearGradientBrush(glowColor, transparent, new System.Windows.Point(1, 0.5), new System.Windows.Point(0, 0.5));
         }
         else
         {
-            TopGlow.Fill = Brushes.Transparent;
-            BottomGlow.Fill = Brushes.Transparent;
-            LeftGlow.Fill = Brushes.Transparent;
-            RightGlow.Fill = Brushes.Transparent;
+            TopGlow.Fill = System.Windows.Media.Brushes.Transparent;
+            BottomGlow.Fill = System.Windows.Media.Brushes.Transparent;
+            LeftGlow.Fill = System.Windows.Media.Brushes.Transparent;
+            RightGlow.Fill = System.Windows.Media.Brushes.Transparent;
         }
 
         if (_showTopProgress)

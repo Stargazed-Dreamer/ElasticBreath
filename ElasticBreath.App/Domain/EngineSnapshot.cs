@@ -2,7 +2,7 @@ namespace ElasticBreath.App.Domain;
 
 public sealed record PendingTransitionSnapshot(
     PendingTransitionKind Kind,
-    string Message,
+    string MessageKey,
     TimeSpan Remaining);
 
 public sealed record EngineSnapshot(
@@ -15,6 +15,7 @@ public sealed record EngineSnapshot(
     TimeSpan TotalRestingToday,
     PendingTransitionSnapshot? PendingTransition,
     bool RemindersPaused,
+    bool SessionLocked,
     DateTimeOffset UpdatedAt)
 {
     public double WorkingProgressRatio(TimeSpan maxWork)

@@ -4,11 +4,10 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="ElasticBreath Control Tower"
         Width="760"
-        Height="690"
+        Height="620"
         MinWidth="700"
-        MinHeight="640"
+        MinHeight="560"
         Background="#F4FAF7">
     <Grid Margin="18">
         <Grid.RowDefinitions>
@@ -25,11 +24,11 @@
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
             <StackPanel>
-                <TextBlock Text="ElasticBreath"
+                <TextBlock x:Name="AppNameText"
                            FontSize="30"
                            FontWeight="SemiBold"
                            Foreground="#FF18422E"/>
-                <TextBlock Text="Elastic work-rest state machine for long computer sessions"
+                <TextBlock x:Name="AppSubtitleText"
                            Margin="0,4,0,0"
                            FontSize="13"
                            Foreground="#FF4A7160"/>
@@ -43,13 +42,11 @@
                     VerticalAlignment="Top">
                 <StackPanel>
                     <TextBlock x:Name="StateText"
-                               Text="State: Idle"
                                FontSize="14"
                                FontWeight="SemiBold"
                                Foreground="#FF18422E"/>
                     <TextBlock x:Name="PressureText"
                                Margin="0,4,0,0"
-                               Text="Pressure: Safe"
                                FontSize="12"
                                Foreground="#FF2B5A45"/>
                 </StackPanel>
@@ -78,7 +75,6 @@
                                Foreground="#FF183D30"/>
                     <TextBlock x:Name="CenterStateText"
                                Margin="0,6,0,0"
-                               Text="IDLE"
                                FontSize="15"
                                HorizontalAlignment="Center"
                                Foreground="#FF2A654D"/>
@@ -93,32 +89,28 @@
                     BorderThickness="1"
                     BorderBrush="#FFD1E8DC">
                 <StackPanel>
-                    <TextBlock Text="Today"
+                    <TextBlock x:Name="TodayTitleText"
                                FontSize="16"
                                FontWeight="SemiBold"
                                Foreground="#FF18422E"/>
                     <TextBlock x:Name="TodayWorkText"
                                Margin="0,10,0,0"
-                               Text="Working total: 00:00:00"
                                FontSize="13"
                                Foreground="#FF365E4D"/>
                     <TextBlock x:Name="TodayRestText"
                                Margin="0,6,0,0"
-                               Text="Resting total: 00:00:00"
                                FontSize="13"
                                Foreground="#FF365E4D"/>
                     <TextBlock x:Name="MonitorText"
                                Margin="0,14,0,0"
-                               Text="Target display: Auto"
                                FontSize="12"
                                Foreground="#FF577A6A"/>
                     <TextBlock x:Name="PendingText"
                                Margin="0,14,0,0"
-                               Text="Pending transition: none"
                                FontSize="12"
                                TextWrapping="Wrap"
                                Foreground="#FF8C5100"/>
-                    <TextBlock Text="Corner hover trigger: move mouse to any screen corner and hold."
+                    <TextBlock x:Name="CornerHintText"
                                Margin="0,18,0,0"
                                FontSize="12"
                                Foreground="#FF5B5B5B"
@@ -128,66 +120,27 @@
         </Grid>
 
         <UniformGrid Grid.Row="2" Margin="0,14,0,0" Columns="4">
-            <Button x:Name="StartWorkButton" Content="Start Work" Margin="5" Height="40" Click="StartWorkButton_Click"/>
-            <Button x:Name="StartRestButton" Content="Start Rest" Margin="5" Height="40" Click="StartRestButton_Click"/>
-            <Button x:Name="StopButton" Content="Stop to Idle" Margin="5" Height="40" Click="StopButton_Click"/>
-            <Button x:Name="PauseRemindersButton" Content="Pause Reminders" Margin="5" Height="40" Click="PauseRemindersButton_Click"/>
+            <Button x:Name="StartWorkButton" Margin="5" Height="40" Click="StartWorkButton_Click"/>
+            <Button x:Name="StartRestButton" Margin="5" Height="40" Click="StartRestButton_Click"/>
+            <Button x:Name="StopButton" Margin="5" Height="40" Click="StopButton_Click"/>
+            <Button x:Name="PauseRemindersButton" Margin="5" Height="40" Click="PauseRemindersButton_Click"/>
         </UniformGrid>
 
-        <Border Grid.Row="3"
+        <UniformGrid Grid.Row="3" Margin="0,8,0,0" Columns="2">
+            <Button x:Name="OpenSettingsButton" Margin="5" Height="36" Click="OpenSettingsButton_Click"/>
+            <Button x:Name="OpenHelpButton" Margin="5" Height="36" Click="OpenHelpButton_Click"/>
+        </UniformGrid>
+
+        <Border Grid.Row="4"
                 Margin="0,12,0,0"
                 Padding="10,8"
                 BorderThickness="1"
                 BorderBrush="#FFE1C79A"
                 Background="#FFFFF7EB"
                 CornerRadius="8">
-            <TextBlock Text="Close button sends app to tray. Use tray icon to restore or exit."
+            <TextBlock x:Name="TrayHintText"
                        Foreground="#FF8E5B00"
                        FontSize="12"/>
         </Border>
-
-        <GroupBox Grid.Row="4" Margin="0,14,0,0" Header="Quick Settings">
-            <Grid Margin="10">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
-                <UniformGrid Grid.Row="0" Columns="4" Margin="0,0,0,10">
-                    <StackPanel Margin="0,0,8,6">
-                        <TextBlock Text="Min work (min)"/>
-                        <TextBox x:Name="MinWorkBox" Margin="0,4,0,0"/>
-                    </StackPanel>
-                    <StackPanel Margin="0,0,8,6">
-                        <TextBlock Text="Max work (min)"/>
-                        <TextBox x:Name="MaxWorkBox" Margin="0,4,0,0"/>
-                    </StackPanel>
-                    <StackPanel Margin="0,0,8,6">
-                        <TextBlock Text="Default rest (min)"/>
-                        <TextBox x:Name="DefaultRestBox" Margin="0,4,0,0"/>
-                    </StackPanel>
-                    <StackPanel Margin="0,0,8,6">
-                        <TextBlock Text="Overtime rest (min)"/>
-                        <TextBox x:Name="OvertimeRestBox" Margin="0,4,0,0"/>
-                    </StackPanel>
-                </UniformGrid>
-
-                <Grid Grid.Row="1">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <UniformGrid Columns="2" Rows="3" Margin="0,4,12,0">
-                        <CheckBox x:Name="EdgeGlowToggle" Content="Enable edge glow"/>
-                        <CheckBox x:Name="TopBarToggle" Content="Enable top progress bar"/>
-                        <CheckBox x:Name="CornerHoverToggle" Content="Enable corner hover trigger"/>
-                        <CheckBox x:Name="FullscreenHideToggle" Content="Hide overlay in fullscreen apps"/>
-                        <CheckBox x:Name="SoundToggle" Content="Enable sound reminder"/>
-                    </UniformGrid>
-                    <StackPanel Grid.Column="1" VerticalAlignment="Top">
-                        <Button Content="Save Settings" Height="34" MinWidth="120" Padding="10,0" Click="SaveSettingsButton_Click"/>
-                    </StackPanel>
-                </Grid>
-            </Grid>
-        </GroupBox>
     </Grid>
 </Window>

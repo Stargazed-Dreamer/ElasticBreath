@@ -7,23 +7,24 @@ public sealed class CornerTriggerService
     private const double CornerHitSize = 18;
     private string? _activeCorner;
     private DateTime _enteredUtc;
-    private DateTime _cooldownUntilUtc = DateTime.MinValue;
+    private bool _mustExitCornerBeforeNextTrigger;
 
     public bool TryTrigger(Rect bounds, System.Windows.Point cursor, TimeSpan hoverDuration)
     {
-        var now = DateTime.UtcNow;
-        if (now < _cooldownUntilUtc)
-        {
-            return false;
-        }
-
         var corner = DetectCorner(bounds, cursor);
         if (corner is null)
         {
             _activeCorner = null;
+            _mustExitCornerBeforeNextTrigger = false;
             return false;
         }
 
+        if (_mustExitCornerBeforeNextTrigger)
+        {
+            return false;
+        }
+
+        var now = DateTime.UtcNow;
         if (_activeCorner != corner)
         {
             _activeCorner = corner;
@@ -36,8 +37,8 @@ public sealed class CornerTriggerService
             return false;
         }
 
-        _activeCorner = null;
-        _cooldownUntilUtc = now + TimeSpan.FromSeconds(1.2);
+        _activeCorner = corner;
+        _mustExitCornerBeforeNextTrigger = true;
         return true;
     }
 
