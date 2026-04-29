@@ -1,0 +1,13 @@
+F:\codex\ElasticBreath\ElasticBreath.App\obj\Debug\net8.0-windows\MainWindow.baml
+F:\codex\ElasticBreath\ElasticBreath.App\obj\Debug\net8.0-windows\UI\CountdownNotificationWindow.baml
+F:\codex\ElasticBreath\ElasticBreath.App\obj\Debug\net8.0-windows\UI\EdgeOverlayWindow.baml
+F:\codex\ElasticBreath\ElasticBreath.App\obj\Debug\net8.0-windows\MainWindow.g.cs
+F:\codex\ElasticBreath\ElasticBreath.App\obj\Debug\net8.0-windows\UI\CountdownNotificationWindow.g.cs
+F:\codex\ElasticBreath\ElasticBreath.App\obj\Debug\net8.0-windows\UI\EdgeOverlayWindow.g.cs
+F:\codex\ElasticBreath\ElasticBreath.App\obj\Debug\net8.0-windows\App.g.cs
+F:\codex\ElasticBreath\ElasticBreath.App\obj\Debug\net8.0-windows\ElasticBreath.App_MarkupCompile.cache
+F:\codex\ElasticBreath\ElasticBreath.App\obj\Debug\net8.0-windows\ElasticBreath.App.g.resources
+F:\codex\ElasticBreath\ElasticBreath.App\obj\Debug\net8.0-windows\ElasticBreath.App.GeneratedMSBuildEditorConfig.editorconfig
+F:\codex\ElasticBreath\ElasticBreath.App\obj\Debug\net8.0-windows\ElasticBreath.App.AssemblyInfoInputs.cache
+F:\codex\ElasticBreath\ElasticBreath.App\obj\Debug\net8.0-windows\ElasticBreath.App.AssemblyInfo.cs
+F:\codex\ElasticBreath\ElasticBreath.App\obj\Debug\net8.0-windows\ElasticBreath.App.csproj.CoreCompileInputs.cache

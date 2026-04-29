@@ -9,7 +9,7 @@ public sealed class CornerTriggerService
     private DateTime _enteredUtc;
     private DateTime _cooldownUntilUtc = DateTime.MinValue;
 
-    public bool TryTrigger(Rect bounds, Point cursor, TimeSpan hoverDuration)
+    public bool TryTrigger(Rect bounds, System.Windows.Point cursor, TimeSpan hoverDuration)
     {
         var now = DateTime.UtcNow;
         if (now < _cooldownUntilUtc)
@@ -41,7 +41,7 @@ public sealed class CornerTriggerService
         return true;
     }
 
-    private static string? DetectCorner(Rect bounds, Point cursor)
+    private static string? DetectCorner(Rect bounds, System.Windows.Point cursor)
     {
         var left = bounds.Left;
         var top = bounds.Top;
