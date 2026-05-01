@@ -5,6 +5,12 @@ public sealed record PendingTransitionSnapshot(
     string MessageKey,
     TimeSpan Remaining);
 
+/// <summary>智能检测的探测进度，用于 UI 显示"还需持续 X 秒才能触发切换"</summary>
+public sealed record DetectionProbeSnapshot(
+    string MessageKey,
+    TimeSpan Elapsed,
+    TimeSpan Required);
+
 public sealed record EngineSnapshot(
     ElasticBreathState State,
     WorkingPressureLevel WorkingPressure,
@@ -14,6 +20,7 @@ public sealed record EngineSnapshot(
     TimeSpan TotalWorkingToday,
     TimeSpan TotalRestingToday,
     PendingTransitionSnapshot? PendingTransition,
+    DetectionProbeSnapshot? DetectionProbe,
     bool RemindersPaused,
     bool SessionLocked,
     DateTimeOffset UpdatedAt)

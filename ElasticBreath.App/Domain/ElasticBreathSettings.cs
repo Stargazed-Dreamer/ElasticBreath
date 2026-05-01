@@ -1,19 +1,51 @@
 namespace ElasticBreath.App.Domain;
 
+public enum CloseBehavior
+{
+    Exit = 0,
+    MinimizeToTray = 1
+}
+
 public sealed class ElasticBreathSettings
 {
+    public const int MinWorkSecondsMin = 1;
+    public const int MinWorkSecondsMax = 7200;
+    public const int MaxWorkSecondsMin = 1;
+    public const int MaxWorkSecondsMax = 14400;
+    public const int DefaultRestSecondsMin = 1;
+    public const int DefaultRestSecondsMax = 7200;
+    public const int RestOvertimeSecondsMin = 1;
+    public const int RestOvertimeSecondsMax = 14400;
+    public const int MinEffectiveRestSecondsMin = 1;
+    public const int MinEffectiveRestSecondsMax = 7200;
+    public const int AwayThresholdSecondsMin = 1;
+    public const int AwayThresholdSecondsMax = 7200;
+    public const int AutoRestAfterIdleSecondsMin = 10;
+    public const int AutoRestAfterIdleSecondsMax = 3600;
+    public const int IdleToWorkDetectSecondsMin = 1;
+    public const int IdleToWorkDetectSecondsMax = 600;
+    public const int RestToWorkDetectSecondsMin = 1;
+    public const int RestToWorkDetectSecondsMax = 600;
+    public const int SmartDetectGapSecondsMin = 1;
+    public const int SmartDetectGapSecondsMax = 15;
+    public const int AutoTransitionCountdownSecondsMin = 1;
+    public const int AutoTransitionCountdownSecondsMax = 120;
+    public const double CornerHoverSecondsMin = 0.5;
+    public const double CornerHoverSecondsMax = 10;
+
     public string Language { get; set; } = "zh-CN";
+    public CloseBehavior CloseBehaviorOnMainWindowClose { get; set; } = CloseBehavior.MinimizeToTray;
 
-    public int MinWorkMinutes { get; set; } = 35;
-    public int MaxWorkMinutes { get; set; } = 45;
-    public int DefaultRestMinutes { get; set; } = 5;
-    public int RestOvertimeMinutes { get; set; } = 8;
-    public int MinEffectiveRestMinutes { get; set; } = 3;
-    public int AwayThresholdMinutes { get; set; } = 3;
+    public int MinWorkSeconds { get; set; } = 35 * 60;
+    public int MaxWorkSeconds { get; set; } = 45 * 60;
+    public int DefaultRestSeconds { get; set; } = 5 * 60;
+    public int RestOvertimeSeconds { get; set; } = 8 * 60;
+    public int MinEffectiveRestSeconds { get; set; } = 3 * 60;
+    public int AwayThresholdSeconds { get; set; } = 3 * 60;
     public int AutoRestAfterIdleSeconds { get; set; } = 30;
-
-    public int PostponeCooldownMinutes { get; set; } = 5;
-    public int DailyPostponeLimit { get; set; } = 3;
+    public int IdleToWorkDetectSeconds { get; set; } = 4;
+    public int RestToWorkDetectSeconds { get; set; } = 30;
+    public int SmartDetectGapSeconds { get; set; } = 2;
     public int AutoTransitionCountdownSeconds { get; set; } = 5;
     public double CornerHoverSeconds { get; set; } = 1.5;
 
@@ -31,30 +63,36 @@ public sealed class ElasticBreathSettings
 
     public string PreferredDisplay { get; set; } = "auto";
 
-    public TimeSpan MinWorkThreshold => TimeSpan.FromMinutes(MinWorkMinutes);
-    public TimeSpan MaxWorkThreshold => TimeSpan.FromMinutes(MaxWorkMinutes);
-    public TimeSpan DefaultRestThreshold => TimeSpan.FromMinutes(DefaultRestMinutes);
-    public TimeSpan RestOvertimeThreshold => TimeSpan.FromMinutes(RestOvertimeMinutes);
-    public TimeSpan MinEffectiveRestThreshold => TimeSpan.FromMinutes(MinEffectiveRestMinutes);
-    public TimeSpan AwayThreshold => TimeSpan.FromMinutes(AwayThresholdMinutes);
+    /* 用户在设置界面输入的原始表达式文本（如 "35*60"），保存到 JSON 时使用原始文本以方便阅读 */
+    public Dictionary<string, string> RawExpressions { get; set; } = new();
+
+    public TimeSpan MinWorkThreshold => TimeSpan.FromSeconds(MinWorkSeconds);
+    public TimeSpan MaxWorkThreshold => TimeSpan.FromSeconds(MaxWorkSeconds);
+    public TimeSpan DefaultRestThreshold => TimeSpan.FromSeconds(DefaultRestSeconds);
+    public TimeSpan RestOvertimeThreshold => TimeSpan.FromSeconds(RestOvertimeSeconds);
+    public TimeSpan MinEffectiveRestThreshold => TimeSpan.FromSeconds(MinEffectiveRestSeconds);
+    public TimeSpan AwayThreshold => TimeSpan.FromSeconds(AwayThresholdSeconds);
     public TimeSpan AutoRestAfterIdleThreshold => TimeSpan.FromSeconds(AutoRestAfterIdleSeconds);
-    public TimeSpan PostponeCooldown => TimeSpan.FromMinutes(PostponeCooldownMinutes);
+    public TimeSpan IdleToWorkDetectThreshold => TimeSpan.FromSeconds(IdleToWorkDetectSeconds);
+    public TimeSpan RestToWorkDetectThreshold => TimeSpan.FromSeconds(RestToWorkDetectSeconds);
+    public TimeSpan SmartDetectGapThreshold => TimeSpan.FromSeconds(SmartDetectGapSeconds);
     public TimeSpan AutoTransitionCountdown => TimeSpan.FromSeconds(AutoTransitionCountdownSeconds);
     public TimeSpan CornerHoverDuration => TimeSpan.FromSeconds(CornerHoverSeconds);
 
     public ElasticBreathSettings Sanitize()
     {
-        MinWorkMinutes = Math.Max(1, MinWorkMinutes);
-        MaxWorkMinutes = Math.Max(MinWorkMinutes, MaxWorkMinutes);
-        DefaultRestMinutes = Math.Max(1, DefaultRestMinutes);
-        RestOvertimeMinutes = Math.Max(DefaultRestMinutes, RestOvertimeMinutes);
-        MinEffectiveRestMinutes = Math.Clamp(MinEffectiveRestMinutes, 1, RestOvertimeMinutes);
-        AwayThresholdMinutes = Math.Max(1, AwayThresholdMinutes);
-        AutoRestAfterIdleSeconds = Math.Clamp(AutoRestAfterIdleSeconds, 10, 600);
-        PostponeCooldownMinutes = Math.Max(1, PostponeCooldownMinutes);
-        DailyPostponeLimit = Math.Max(0, DailyPostponeLimit);
-        AutoTransitionCountdownSeconds = Math.Clamp(AutoTransitionCountdownSeconds, 1, 30);
-        CornerHoverSeconds = Math.Clamp(CornerHoverSeconds, 0.5, 5);
+        MinWorkSeconds = Math.Clamp(MinWorkSeconds, MinWorkSecondsMin, MinWorkSecondsMax);
+        MaxWorkSeconds = Math.Clamp(MaxWorkSeconds, Math.Max(MinWorkSeconds, MaxWorkSecondsMin), MaxWorkSecondsMax);
+        DefaultRestSeconds = Math.Clamp(DefaultRestSeconds, DefaultRestSecondsMin, DefaultRestSecondsMax);
+        RestOvertimeSeconds = Math.Clamp(RestOvertimeSeconds, Math.Max(DefaultRestSeconds, RestOvertimeSecondsMin), RestOvertimeSecondsMax);
+        MinEffectiveRestSeconds = Math.Clamp(MinEffectiveRestSeconds, MinEffectiveRestSecondsMin, Math.Min(MinEffectiveRestSecondsMax, RestOvertimeSeconds));
+        AwayThresholdSeconds = Math.Clamp(AwayThresholdSeconds, Math.Max(RestOvertimeSeconds + 1, AwayThresholdSecondsMin), AwayThresholdSecondsMax);
+        AutoRestAfterIdleSeconds = Math.Clamp(AutoRestAfterIdleSeconds, AutoRestAfterIdleSecondsMin, AutoRestAfterIdleSecondsMax);
+        IdleToWorkDetectSeconds = Math.Clamp(IdleToWorkDetectSeconds, IdleToWorkDetectSecondsMin, IdleToWorkDetectSecondsMax);
+        RestToWorkDetectSeconds = Math.Clamp(RestToWorkDetectSeconds, RestToWorkDetectSecondsMin, RestToWorkDetectSecondsMax);
+        SmartDetectGapSeconds = Math.Clamp(SmartDetectGapSeconds, SmartDetectGapSecondsMin, SmartDetectGapSecondsMax);
+        AutoTransitionCountdownSeconds = Math.Clamp(AutoTransitionCountdownSeconds, AutoTransitionCountdownSecondsMin, AutoTransitionCountdownSecondsMax);
+        CornerHoverSeconds = Math.Clamp(CornerHoverSeconds, CornerHoverSecondsMin, CornerHoverSecondsMax);
         GlowMaxThicknessPixels = Math.Clamp(GlowMaxThicknessPixels, 12, 600);
         OverlayOpacity = Math.Clamp(OverlayOpacity, 0.1, 0.9);
         ReminderVolumePercent = Math.Clamp(ReminderVolumePercent, 0, 100);

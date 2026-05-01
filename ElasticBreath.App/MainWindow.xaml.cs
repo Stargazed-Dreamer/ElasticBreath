@@ -2,7 +2,6 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
-using System.Windows.Threading;
 using ElasticBreath.App.Domain;
 using ElasticBreath.App.Services;
 using ElasticBreath.App.UI;
@@ -24,7 +23,8 @@ public partial class MainWindow : Window
     private readonly SessionMonitor _sessionMonitor;
     private readonly EdgeOverlayWindow _overlayWindow;
     private readonly CountdownNotificationWindow _notificationWindow;
-    private readonly DispatcherTimer _cornerPollTimer;
+    private readonly ToastWindow _toastWindow;
+    private readonly System.Windows.Threading.DispatcherTimer _cornerPollTimer;
 
     private Forms.NotifyIcon? _trayIcon;
     private bool _exitRequested;
@@ -39,14 +39,16 @@ public partial class MainWindow : Window
         _localization = new LocalizationService();
         _localization.Load(_settings.Language);
 
-        _engine = new BreathEngine(_settings, new InputMonitor());
+        var remoteFilter = new RemoteInputFilterService();
+        _engine = new BreathEngine(_settings, new InputMonitor(remoteFilter));
         _cornerTrigger = new CornerTriggerService();
         _displayTargetService = new DisplayTargetService();
         _secondaryFlashService = new SecondaryMonitorFlashService();
         _sessionMonitor = new SessionMonitor();
         _overlayWindow = new EdgeOverlayWindow();
         _notificationWindow = new CountdownNotificationWindow();
-        _cornerPollTimer = new DispatcherTimer
+        _toastWindow = new ToastWindow();
+        _cornerPollTimer = new System.Windows.Threading.DispatcherTimer
         {
             Interval = TimeSpan.FromMilliseconds(250)
         };
@@ -54,12 +56,11 @@ public partial class MainWindow : Window
         _engine.SnapshotChanged += OnSnapshotChanged;
         _notificationWindow.CancelRequested += (_, _) => _engine.CancelPendingTransition();
         _cornerPollTimer.Tick += OnCornerPollTimerTick;
-        _sessionMonitor.SessionLockChanged += OnSessionLockChanged;
+        _sessionMonitor.SessionLockChanged += (_, locked) => _engine.HandleSessionSwitch(locked);
 
         Loaded += OnLoaded;
         Closing += OnClosing;
         Closed += OnClosed;
-        StateChanged += OnStateChanged;
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
@@ -73,18 +74,16 @@ public partial class MainWindow : Window
         UpdateOverlayAndNotifications(_engine.Snapshot);
     }
 
-    private void OnStateChanged(object? sender, EventArgs e)
-    {
-        if (WindowState == WindowState.Minimized)
-        {
-            Hide();
-        }
-    }
-
     private void OnClosing(object? sender, CancelEventArgs e)
     {
         if (_exitRequested)
         {
+            return;
+        }
+
+        if (_settings.CloseBehaviorOnMainWindowClose == CloseBehavior.Exit)
+        {
+            _exitRequested = true;
             return;
         }
 
@@ -103,6 +102,7 @@ public partial class MainWindow : Window
         _engine.Dispose();
         _overlayWindow.Close();
         _notificationWindow.Close();
+        _toastWindow.Close();
         _secondaryFlashService.Dispose();
         _sessionMonitor.Dispose();
 
@@ -121,12 +121,21 @@ public partial class MainWindow : Window
             return;
         }
 
+        var iconPath = System.IO.Path.Combine(AppContext.BaseDirectory, "Resource", "icon.ico");
+        var icon = System.IO.File.Exists(iconPath) ? new Drawing.Icon(iconPath) : Drawing.SystemIcons.Application;
+
         _trayIcon = new Forms.NotifyIcon
         {
-            Icon = Drawing.SystemIcons.Application,
+            Icon = icon,
             Visible = true
         };
-        _trayIcon.DoubleClick += (_, _) => RestoreFromTray();
+        _trayIcon.MouseClick += (_, args) =>
+        {
+            if (args.Button == Forms.MouseButtons.Left)
+            {
+                RestoreFromTray();
+            }
+        };
         RebuildTrayMenu();
     }
 
@@ -148,7 +157,10 @@ public partial class MainWindow : Window
     private void RestoreFromTray()
     {
         Show();
-        WindowState = WindowState.Normal;
+        if (WindowState == WindowState.Minimized)
+        {
+            WindowState = WindowState.Normal;
+        }
         Activate();
     }
 
@@ -156,11 +168,6 @@ public partial class MainWindow : Window
     {
         _exitRequested = true;
         Close();
-    }
-
-    private void OnSessionLockChanged(object? sender, bool locked)
-    {
-        _engine.HandleSessionSwitch(locked);
     }
 
     private void OnSnapshotChanged(object? sender, EngineSnapshot snapshot)
@@ -188,7 +195,10 @@ public partial class MainWindow : Window
         var cursor = Forms.Cursor.Position;
         if (_cornerTrigger.TryTrigger(bounds, new System.Windows.Point(cursor.X, cursor.Y), _settings.CornerHoverDuration))
         {
-            _engine.TriggerCornerTransition();
+            var state = _engine.TriggerCornerTransition();
+            _toastWindow.ShowMessage(
+                _localization.Tf("notify.corner_switched", ResolveStateText(state)),
+                new Rect(b.Left, b.Top, b.Width, b.Height));
         }
     }
 
@@ -206,8 +216,10 @@ public partial class MainWindow : Window
         StopButton.Content = _localization.T("button.stop_idle");
         OpenSettingsButton.Content = _localization.T("button.open_settings");
         OpenHelpButton.Content = _localization.T("button.open_help");
-
         RebuildTrayMenu();
+
+        /* 重新渲染以更新动态按钮文本 */
+        RenderSnapshot(_engine.Snapshot);
     }
 
     private void RenderSnapshot(EngineSnapshot snapshot)
@@ -215,11 +227,28 @@ public partial class MainWindow : Window
         var stateText = ResolveStateText(snapshot.State);
         StateText.Text = _localization.Tf("state.prefix", stateText);
         CenterStateText.Text = ResolveCenterStateText(snapshot.State);
-        TodayWorkText.Text = _localization.Tf("today.work", FormatDuration(snapshot.TotalWorkingToday));
-        TodayRestText.Text = _localization.Tf("today.rest", FormatDuration(snapshot.TotalRestingToday));
+        TodayWorkText.Text = _localization.Tf("today.work", FormatDuration(snapshot.TotalWorkingToday, false));
+        TodayRestText.Text = _localization.Tf("today.rest", FormatDuration(snapshot.TotalRestingToday, false));
         PauseRemindersButton.Content = snapshot.RemindersPaused
             ? _localization.T("button.resume_reminders")
             : _localization.T("button.pause_reminders");
+
+        /* 根据当前状态动态切换按钮文本：
+           - 工作中 → "暂停"，暂停后 → "继续"
+           - 休息中 → "暂停"，暂停后 → "继续"
+           - 其他状态 → "开始工作"/"开始休息" */
+        StartWorkButton.Content = snapshot.State switch
+        {
+            ElasticBreathState.Working => _localization.T("button.pause_work"),
+            ElasticBreathState.Paused => _localization.T("button.resume_work"),
+            _ => _localization.T("button.start_work")
+        };
+        StartRestButton.Content = snapshot.State switch
+        {
+            ElasticBreathState.Resting => _localization.T("button.pause_rest"),
+            ElasticBreathState.Paused => _localization.T("button.resume_rest"),
+            _ => _localization.T("button.start_rest")
+        };
 
         if (snapshot.PendingTransition is null)
         {
@@ -229,6 +258,14 @@ public partial class MainWindow : Window
         {
             var seconds = Math.Max(0, (int)Math.Ceiling(snapshot.PendingTransition.Remaining.TotalSeconds));
             PendingText.Text = _localization.Tf("pending.format", ResolveTransitionText(snapshot.PendingTransition.Kind), seconds);
+        }
+
+        /* 显示智能检测探测进度（如"持续活动 2s/4s 后开始工作"） */
+        if (snapshot.DetectionProbe is not null)
+        {
+            var probeElapsed = (int)Math.Floor(snapshot.DetectionProbe.Elapsed.TotalSeconds);
+            var probeRequired = (int)Math.Ceiling(snapshot.DetectionProbe.Required.TotalSeconds);
+            PendingText.Text = _localization.Tf(snapshot.DetectionProbe.MessageKey, probeElapsed, probeRequired);
         }
 
         if (snapshot.SessionLocked)
@@ -241,7 +278,7 @@ public partial class MainWindow : Window
             ElasticBreathState.Resting => snapshot.RestingCycleElapsed,
             _ => snapshot.WorkingCycleElapsed
         };
-        TimerText.Text = FormatDuration(elapsed, shortStyle: true);
+        TimerText.Text = FormatDuration(elapsed, true);
         PressureText.Text = _localization.Tf("pressure.prefix", ResolvePressureText(snapshot));
 
         var progress = snapshot.State switch
@@ -250,8 +287,7 @@ public partial class MainWindow : Window
             ElasticBreathState.Resting => snapshot.RestingProgressRatio(_settings.RestOvertimeThreshold),
             _ => 0
         };
-        var color = ResolveProgressColor(snapshot);
-        ProgressArc.Stroke = new SolidColorBrush(color);
+        ProgressArc.Stroke = new SolidColorBrush(ResolveProgressColor(snapshot));
         ProgressArc.Data = BuildArcGeometry(new System.Windows.Point(140, 140), 106, progress);
     }
 
@@ -281,13 +317,12 @@ public partial class MainWindow : Window
             _settings.OverlayOpacity,
             hideForFullscreen);
 
-        var primaryIgnored = !_displayTargetService.IsCursorOnScreen(targetScreen);
         _secondaryFlashService.Update(
             _settings,
             targetScreen,
             overlayState,
             hideForFullscreen || !_settings.EnableEdgeGlow,
-            primaryIgnored);
+            !_displayTargetService.IsCursorOnScreen(targetScreen));
 
         if (snapshot.PendingTransition is null)
         {
@@ -295,13 +330,8 @@ public partial class MainWindow : Window
         }
         else
         {
-            var message = _localization.Tf(
-                snapshot.PendingTransition.MessageKey,
-                _settings.AutoTransitionCountdownSeconds);
-            _notificationWindow.UpdateMessage(
-                message,
-                _localization.T("notify.auto_action"),
-                snapshot.PendingTransition.Remaining);
+            var message = _localization.Tf(snapshot.PendingTransition.MessageKey, _settings.AutoTransitionCountdownSeconds);
+            _notificationWindow.UpdateMessage(message, _localization.T("notify.auto_action"), snapshot.PendingTransition.Remaining);
             if (!_notificationWindow.IsVisible)
             {
                 _notificationWindow.Show();
@@ -313,8 +343,17 @@ public partial class MainWindow : Window
     {
         var max = _settings.GlowMaxThicknessPixels;
         var baseThickness = Math.Clamp(max / 3, 12, max);
-        if (snapshot.State == ElasticBreathState.Resting
-            && snapshot.RestPressure == RestPressureLevel.Overtime)
+
+        /* Hard 警示：工作超过最大阈值后，渗透宽度逐步增长到上限 */
+        if (snapshot.State == ElasticBreathState.Working && snapshot.WorkingPressure == WorkingPressureLevel.Hard)
+        {
+            var overtime = snapshot.WorkingCycleElapsed - _settings.MaxWorkThreshold;
+            var ratio = Math.Clamp(overtime.TotalSeconds / 120d, 0, 1);
+            return (int)Math.Round(baseThickness + ((max - baseThickness) * ratio));
+        }
+
+        /* 休息超时：渗透宽度逐步增长到上限 */
+        if (snapshot.State == ElasticBreathState.Resting && snapshot.RestPressure == RestPressureLevel.Overtime)
         {
             var overtime = snapshot.RestingCycleElapsed - _settings.RestOvertimeThreshold;
             var ratio = Math.Clamp(overtime.TotalSeconds / 120d, 0, 1);
@@ -363,6 +402,8 @@ public partial class MainWindow : Window
             PendingTransitionKind.IdleToWorking => _localization.T("transition.idle_to_working"),
             PendingTransitionKind.WorkingToPaused => _localization.T("transition.working_to_paused"),
             PendingTransitionKind.PausedToWorking => _localization.T("transition.paused_to_working"),
+            PendingTransitionKind.WorkingToResting => _localization.T("transition.working_to_resting"),
+            PendingTransitionKind.RestingToWorking => _localization.T("transition.resting_to_working"),
             _ => kind.ToString()
         };
 
@@ -391,12 +432,10 @@ public partial class MainWindow : Window
             _ => MediaColor.FromRgb(120, 160, 140)
         };
 
-    private static string FormatDuration(TimeSpan span, bool shortStyle = false)
-    {
-        return shortStyle
+    private static string FormatDuration(TimeSpan span, bool shortStyle)
+        => shortStyle
             ? $"{(int)span.TotalMinutes:00}:{span.Seconds:00}"
             : $"{(int)span.TotalHours:00}:{span.Minutes:00}:{span.Seconds:00}";
-    }
 
     private static Geometry BuildArcGeometry(System.Windows.Point center, double radius, double progressRatio)
     {
@@ -405,18 +444,15 @@ public partial class MainWindow : Window
         {
             return Geometry.Empty;
         }
-
         if (progressRatio >= 0.9999)
         {
             return new EllipseGeometry(center, radius, radius);
         }
-
         var startAngle = -90d;
         var endAngle = startAngle + (360d * progressRatio);
         var start = PointOnCircle(center, radius, startAngle);
         var end = PointOnCircle(center, radius, endAngle);
         var largeArc = progressRatio > 0.5;
-
         var figure = new PathFigure { StartPoint = start, IsClosed = false };
         figure.Segments.Add(new ArcSegment(end, new System.Windows.Size(radius, radius), 0, largeArc, SweepDirection.Clockwise, true));
         return new PathGeometry(new[] { figure });
@@ -425,29 +461,58 @@ public partial class MainWindow : Window
     private static System.Windows.Point PointOnCircle(System.Windows.Point center, double radius, double angleDegrees)
     {
         var rad = angleDegrees * Math.PI / 180d;
-        return new System.Windows.Point(
-            center.X + (radius * Math.Cos(rad)),
-            center.Y + (radius * Math.Sin(rad)));
+        return new System.Windows.Point(center.X + (radius * Math.Cos(rad)), center.Y + (radius * Math.Sin(rad)));
     }
 
-    private void StartWorkButton_Click(object sender, RoutedEventArgs e) => _engine.StartWorkingManual();
+    private void StartWorkButton_Click(object sender, RoutedEventArgs e)
+    {
+        switch (_engine.Snapshot.State)
+        {
+            case ElasticBreathState.Working:
+                /* 工作中点击 → 暂停 */
+                _engine.PauseFromWorking();
+                break;
+            case ElasticBreathState.Paused:
+                /* 暂停中点击 → 继续工作 */
+                _engine.ResumeWorking();
+                break;
+            default:
+                /* 其他状态 → 开始工作 */
+                _engine.StartWorkingManual();
+                break;
+        }
+    }
 
-    private void StartRestButton_Click(object sender, RoutedEventArgs e) => _engine.StartRestingManual();
-
+    private void StartRestButton_Click(object sender, RoutedEventArgs e)
+    {
+        switch (_engine.Snapshot.State)
+        {
+            case ElasticBreathState.Resting:
+                /* 休息中点击 → 暂停 */
+                _engine.PauseFromResting();
+                break;
+            case ElasticBreathState.Paused:
+                /* 暂停中点击 → 继续休息 */
+                _engine.ResumeResting();
+                break;
+            default:
+                /* 其他状态 → 开始休息 */
+                _engine.StartRestingManual();
+                break;
+        }
+    }
     private void StopButton_Click(object sender, RoutedEventArgs e) => _engine.StopToIdle();
-
-    private void PauseRemindersButton_Click(object sender, RoutedEventArgs e)
-        => _engine.SetRemindersPaused(!_engine.Snapshot.RemindersPaused);
+    private void PauseRemindersButton_Click(object sender, RoutedEventArgs e) => _engine.SetRemindersPaused(!_engine.Snapshot.RemindersPaused);
 
     private void OpenSettingsButton_Click(object sender, RoutedEventArgs e)
     {
         var dialog = new SettingsWindow(_settings, _localization) { Owner = this };
-        var ok = dialog.ShowDialog();
-        if (ok != true)
-        {
-            return;
-        }
+        dialog.SettingsApplied += (_, _) => ApplySettings();
+        _ = dialog.ShowDialog();
+    }
 
+    private void ApplySettings()
+    {
         _settingsStore.Save(_settings);
         _localization.Load(_settings.Language);
         ApplyLocalization();
@@ -459,6 +524,6 @@ public partial class MainWindow : Window
     private void OpenHelpButton_Click(object sender, RoutedEventArgs e)
     {
         var dialog = new HelpWindow(_localization) { Owner = this };
-        dialog.ShowDialog();
+        _ = dialog.ShowDialog();
     }
 }

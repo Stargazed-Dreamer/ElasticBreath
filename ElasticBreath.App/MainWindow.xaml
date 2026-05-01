@@ -8,6 +8,7 @@
         Height="620"
         MinWidth="700"
         MinHeight="560"
+        Icon="/Resource/icon.ico"
         Background="#F4FAF7">
     <Grid Margin="18">
         <Grid.RowDefinitions>

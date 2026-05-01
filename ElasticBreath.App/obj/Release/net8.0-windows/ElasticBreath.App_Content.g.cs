@@ -9,5 +9,6 @@
 
 [assembly: System.Windows.Resources.AssemblyAssociatedContentFileAttribute("i18n/en-us.json")]
 [assembly: System.Windows.Resources.AssemblyAssociatedContentFileAttribute("i18n/zh-cn.json")]
+[assembly: System.Windows.Resources.AssemblyAssociatedContentFileAttribute("resource/icon.ico")]
 
 

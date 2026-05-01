@@ -28,3 +28,6 @@ F:\codex\ElasticBreath\ElasticBreath.App\obj\Debug\net8.0-windows\UI\SettingsWin
 F:\codex\ElasticBreath\ElasticBreath.App\obj\Debug\net8.0-windows\ElasticBreath.App_Content.g.cs
 F:\codex\ElasticBreath\ElasticBreath.App\bin\Debug\net8.0-windows\i18n\en-US.json
 F:\codex\ElasticBreath\ElasticBreath.App\bin\Debug\net8.0-windows\i18n\zh-CN.json
+F:\codex\ElasticBreath\ElasticBreath.App\obj\Debug\net8.0-windows\UI\ToastWindow.baml
+F:\codex\ElasticBreath\ElasticBreath.App\obj\Debug\net8.0-windows\UI\ToastWindow.g.cs
+F:\codex\ElasticBreath\ElasticBreath.App\bin\Debug\net8.0-windows\Resource\icon.ico

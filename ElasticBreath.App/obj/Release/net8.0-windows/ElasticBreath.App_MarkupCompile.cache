@@ -10,11 +10,11 @@ none
 false
 TRACE;RELEASE;NET;NET8_0;NETCOREAPP;WINDOWS;WINDOWS7_0;NET5_0_OR_GREATER;NET6_0_OR_GREATER;NET7_0_OR_GREATER;NET8_0_OR_GREATER;NETCOREAPP3_0_OR_GREATER;NETCOREAPP3_1_OR_GREATER;WINDOWS7_0_OR_GREATER
 F:\codex\ElasticBreath\ElasticBreath.App\App.xaml
-5-1919712414
-2-1883607260
-20-1862654753
+6-815776
+3-866056303
+24527214623
 207-1413478916
-MainWindow.xaml;UI\CountdownNotificationWindow.xaml;UI\EdgeOverlayWindow.xaml;UI\HelpWindow.xaml;UI\SettingsWindow.xaml;
+MainWindow.xaml;UI\CountdownNotificationWindow.xaml;UI\EdgeOverlayWindow.xaml;UI\HelpWindow.xaml;UI\SettingsWindow.xaml;UI\ToastWindow.xaml;
 
 False
 

@@ -26,5 +26,7 @@ public enum PendingTransitionKind
 {
     IdleToWorking,
     WorkingToPaused,
-    PausedToWorking
+    PausedToWorking,
+    WorkingToResting,
+    RestingToWorking
 }

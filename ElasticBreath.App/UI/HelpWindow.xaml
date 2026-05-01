@@ -5,6 +5,7 @@
         Height="470"
         MinWidth="560"
         MinHeight="420"
+        Icon="/Resource/icon.ico"
         Background="#F6FAF8"
         WindowStartupLocation="CenterOwner">
     <Grid Margin="16">

@@ -1,0 +1,33 @@
+## .NET 构建输出
+bin/
+obj/
+
+## Visual Studio 缓存
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+## Rider 缓存
+.idea/
+
+## 编译产物
+*.dll
+*.pdb
+*.exe
+*.cache
+
+## NuGet
+*.nupkg
+project.nuget.cache
+project.assets.json
+
+## 系统文件
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+## 日志与临时文件
+*.log
+~*

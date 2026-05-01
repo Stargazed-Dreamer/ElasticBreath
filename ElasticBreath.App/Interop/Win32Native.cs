@@ -48,6 +48,9 @@ internal static class Win32Native
     [DllImport("user32.dll")]
     public static extern bool GetWindowRect(IntPtr hwnd, out Rect rect);
 
+    [DllImport("user32.dll")]
+    public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
     [DllImport("user32.dll", SetLastError = true)]
     private static extern IntPtr GetWindowLongPtr(IntPtr hWnd, int nIndex);
 
