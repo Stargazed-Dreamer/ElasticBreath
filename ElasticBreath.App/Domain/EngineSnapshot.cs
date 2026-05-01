@@ -23,6 +23,7 @@ public sealed record EngineSnapshot(
     DetectionProbeSnapshot? DetectionProbe,
     bool RemindersPaused,
     bool SessionLocked,
+    ElasticBreathState StateBeforePause,
     DateTimeOffset UpdatedAt)
 {
     public double WorkingProgressRatio(TimeSpan maxWork)

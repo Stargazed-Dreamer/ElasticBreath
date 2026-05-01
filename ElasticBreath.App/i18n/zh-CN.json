@@ -15,6 +15,7 @@
   "pending.none": "待处理切换: 无",
   "pending.format": "待处理切换: {0} ({1}s)",
   "probe.idle_to_working": "检测活动中: {0}s / {1}s 后开始工作",
+  "probe.working_to_resting": "已空闲: {0}s / {1}s 后自动休息",
   "probe.resting_to_working": "检测输入中: {0}s / {1}s 后恢复工作",
   "transition.idle_to_working": "空闲 -> 工作",
   "transition.working_to_paused": "工作 -> 暂停",

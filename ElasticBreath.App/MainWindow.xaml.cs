@@ -234,21 +234,28 @@ public partial class MainWindow : Window
             : _localization.T("button.pause_reminders");
 
         /* 根据当前状态动态切换按钮文本：
-           - 工作中 → "暂停"，暂停后 → "继续"
-           - 休息中 → "暂停"，暂停后 → "继续"
+           - 工作中 → "暂停"，休息中 → "暂停"
+           - 暂停中 → 只有暂停前对应的按钮显示"继续"，另一个显示"开始工作/开始休息"
            - 其他状态 → "开始工作"/"开始休息" */
-        StartWorkButton.Content = snapshot.State switch
+        if (snapshot.State == ElasticBreathState.Paused)
         {
-            ElasticBreathState.Working => _localization.T("button.pause_work"),
-            ElasticBreathState.Paused => _localization.T("button.resume_work"),
-            _ => _localization.T("button.start_work")
-        };
-        StartRestButton.Content = snapshot.State switch
+            var fromWorking = snapshot.StateBeforePause == ElasticBreathState.Working;
+            StartWorkButton.Content = fromWorking
+                ? _localization.T("button.resume_work")
+                : _localization.T("button.start_work");
+            StartRestButton.Content = fromWorking
+                ? _localization.T("button.start_rest")
+                : _localization.T("button.resume_rest");
+        }
+        else
         {
-            ElasticBreathState.Resting => _localization.T("button.pause_rest"),
-            ElasticBreathState.Paused => _localization.T("button.resume_rest"),
-            _ => _localization.T("button.start_rest")
-        };
+            StartWorkButton.Content = snapshot.State == ElasticBreathState.Working
+                ? _localization.T("button.pause_work")
+                : _localization.T("button.start_work");
+            StartRestButton.Content = snapshot.State == ElasticBreathState.Resting
+                ? _localization.T("button.pause_rest")
+                : _localization.T("button.start_rest");
+        }
 
         if (snapshot.PendingTransition is null)
         {
@@ -469,15 +476,21 @@ public partial class MainWindow : Window
         switch (_engine.Snapshot.State)
         {
             case ElasticBreathState.Working:
-                /* 工作中点击 → 暂停 */
                 _engine.PauseFromWorking();
                 break;
             case ElasticBreathState.Paused:
-                /* 暂停中点击 → 继续工作 */
-                _engine.ResumeWorking();
+                if (_engine.Snapshot.StateBeforePause == ElasticBreathState.Working)
+                {
+                    /* 从工作暂停 → 继续工作 */
+                    _engine.ResumeWorking();
+                }
+                else
+                {
+                    /* 从休息暂停 → 直接开始工作（切换状态） */
+                    _engine.StartWorkingManual();
+                }
                 break;
             default:
-                /* 其他状态 → 开始工作 */
                 _engine.StartWorkingManual();
                 break;
         }
@@ -488,15 +501,21 @@ public partial class MainWindow : Window
         switch (_engine.Snapshot.State)
         {
             case ElasticBreathState.Resting:
-                /* 休息中点击 → 暂停 */
                 _engine.PauseFromResting();
                 break;
             case ElasticBreathState.Paused:
-                /* 暂停中点击 → 继续休息 */
-                _engine.ResumeResting();
+                if (_engine.Snapshot.StateBeforePause == ElasticBreathState.Resting)
+                {
+                    /* 从休息暂停 → 继续休息 */
+                    _engine.ResumeResting();
+                }
+                else
+                {
+                    /* 从工作暂停 → 直接开始休息（切换状态） */
+                    _engine.StartRestingManual();
+                }
                 break;
             default:
-                /* 其他状态 → 开始休息 */
                 _engine.StartRestingManual();
                 break;
         }

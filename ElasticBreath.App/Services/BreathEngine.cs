@@ -35,6 +35,12 @@ public sealed class BreathEngine : IDisposable
     /* 空闲状态下累积的活动探测时长，达到阈值后触发 IdleToWorking */
     private TimeSpan _idleActivityProbeDuration = TimeSpan.Zero;
 
+    /* 最近一次采样的系统空闲时长，用于 BuildSnapshot 中构建探测进度 */
+    private TimeSpan _lastIdleDuration = TimeSpan.Zero;
+
+    /* 暂停前所处的状态，用于 UI 决定哪个按钮显示"继续" */
+    private ElasticBreathState _stateBeforePause = ElasticBreathState.Idle;
+
     /* 进入休息前的工作计时，用于判断休息是否有效 */
     private TimeSpan _workingCycleElapsedBeforeRest = TimeSpan.Zero;
     private bool _restWasEffective = true;
@@ -121,6 +127,7 @@ public sealed class BreathEngine : IDisposable
     public void PauseFromWorking()
     {
         _pendingTransition = null;
+        _stateBeforePause = ElasticBreathState.Working;
         _state = ElasticBreathState.Paused;
         PublishSnapshot();
     }
@@ -131,6 +138,7 @@ public sealed class BreathEngine : IDisposable
         _pendingTransition = null;
         /* 从休息暂停时认为休息有效（不管实际时长） */
         _restWasEffective = true;
+        _stateBeforePause = ElasticBreathState.Resting;
         _state = ElasticBreathState.Paused;
         PublishSnapshot();
     }
@@ -251,6 +259,7 @@ public sealed class BreathEngine : IDisposable
         ResetDailyCountersIfNeeded();
 
         var sample = _inputMonitor.Sample(_settings.SmartDetectGapThreshold);
+        _lastIdleDuration = sample.IdleDuration;
         AdvanceCycleTime(delta);
         HandleAutomaticTransitions(sample, delta);
         HandlePendingTransition(sample, delta);
@@ -495,6 +504,8 @@ public sealed class BreathEngine : IDisposable
             {
                 ElasticBreathState.Idle when _idleActivityProbeDuration > TimeSpan.Zero
                     => new DetectionProbeSnapshot("probe.idle_to_working", _idleActivityProbeDuration, _settings.IdleToWorkDetectThreshold),
+                ElasticBreathState.Working when _lastIdleDuration > TimeSpan.Zero
+                    => new DetectionProbeSnapshot("probe.working_to_resting", _lastIdleDuration, _settings.AutoRestAfterIdleThreshold),
                 ElasticBreathState.Resting when _inputMonitor.CurrentDenseInputDuration > TimeSpan.Zero
                     => new DetectionProbeSnapshot("probe.resting_to_working", _inputMonitor.CurrentDenseInputDuration, _settings.RestToWorkDetectThreshold),
                 _ => null
@@ -513,6 +524,7 @@ public sealed class BreathEngine : IDisposable
             probe,
             _remindersPaused,
             _sessionLocked,
+            _stateBeforePause,
             DateTimeOffset.Now);
     }
 

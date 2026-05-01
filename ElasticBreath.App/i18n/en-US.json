@@ -15,6 +15,7 @@
   "pending.none": "Pending transition: none",
   "pending.format": "Pending transition: {0} ({1}s)",
   "probe.idle_to_working": "Activity detected: {0}s / {1}s to start working",
+  "probe.working_to_resting": "Idle: {0}s / {1}s to auto-rest",
   "probe.resting_to_working": "Input detected: {0}s / {1}s to resume working",
   "transition.idle_to_working": "Idle -> Working",
   "transition.working_to_paused": "Working -> Paused",
