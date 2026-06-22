@@ -88,6 +88,8 @@
   "settings.glow_max_px": "Max Glow Inset Width (px, 12~600)",
   "settings.overlay_opacity": "Overlay Opacity (0.1~0.9)",
   "settings.fullscreen_hide": "Hide Overlay in Fullscreen",
+  "settings.enable_re_topmost": "Periodic Re-Topmost (prevent Win+D push-back)",
+  "settings.re_topmost_interval": "Re-topmost Interval (seconds)",
   "settings.secondary_flash": "Enable Secondary Monitor Flash",
   "settings.preferred_display": "Primary Monitor",
   "settings.close_behavior": "On Main Window Close",

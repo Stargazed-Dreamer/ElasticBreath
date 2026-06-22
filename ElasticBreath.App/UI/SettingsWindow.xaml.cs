@@ -45,6 +45,7 @@ public partial class SettingsWindow : Window
         _errors[GlowMaxPxBox] = GlowMaxPxError;
         _errors[OverlayOpacityBox] = OverlayOpacityError;
         _errors[VolumeBox] = VolumeError;
+        _errors[ReTopmostIntervalBox] = ReTopmostIntervalError;
     }
 
     private void ApplyLocalization()
@@ -70,6 +71,7 @@ public partial class SettingsWindow : Window
         CornerHoverSecondsLabel.Text = _localization.Tf("settings.label_with_range_float", _localization.T("settings.corner_hover_seconds"), ElasticBreathSettings.CornerHoverSecondsMin, ElasticBreathSettings.CornerHoverSecondsMax);
         GlowMaxPxLabel.Text = _localization.T("settings.glow_max_px");
         OverlayOpacityLabel.Text = _localization.T("settings.overlay_opacity");
+        ReTopmostIntervalLabel.Text = LabeledRange("settings.re_topmost_interval", ElasticBreathSettings.ReTopmostIntervalSecondsMin, ElasticBreathSettings.ReTopmostIntervalSecondsMax);
         PreferredDisplayLabel.Text = _localization.T("settings.preferred_display");
         LanguageLabel.Text = _localization.T("settings.language");
         VolumeLabel.Text = _localization.T("settings.volume");
@@ -79,6 +81,7 @@ public partial class SettingsWindow : Window
         EdgeGlowToggle.Content = _localization.T("settings.enable_edge_glow");
         CornerHoverToggle.Content = _localization.T("settings.enable_corner_hover");
         FullscreenHideToggle.Content = _localization.T("settings.fullscreen_hide");
+        ReTopmostToggle.Content = _localization.T("settings.enable_re_topmost");
         SecondaryFlashToggle.Content = _localization.T("settings.secondary_flash");
         SoundToggle.Content = _localization.T("settings.enable_sound");
         FullscreenBeepToggle.Content = _localization.T("settings.fullscreen_beep");
@@ -144,11 +147,13 @@ public partial class SettingsWindow : Window
         GlowMaxPxBox.Text = GetRawOrValue("glowMaxThicknessPixels", _settings.GlowMaxThicknessPixels);
         OverlayOpacityBox.Text = GetRawOrValue("overlayOpacity", _settings.OverlayOpacity);
         VolumeBox.Text = GetRawOrValue("reminderVolumePercent", _settings.ReminderVolumePercent);
+        ReTopmostIntervalBox.Text = GetRawOrValue("reTopmostIntervalSeconds", _settings.ReTopmostIntervalSeconds);
 
         TopBarToggle.IsChecked = _settings.EnableTopProgressBar;
         EdgeGlowToggle.IsChecked = _settings.EnableEdgeGlow;
         CornerHoverToggle.IsChecked = _settings.EnableCornerHover;
         FullscreenHideToggle.IsChecked = _settings.FullscreenHideMode;
+        ReTopmostToggle.IsChecked = _settings.EnablePeriodicReTopmost;
         SecondaryFlashToggle.IsChecked = _settings.EnableSecondaryMonitorFlash;
         SoundToggle.IsChecked = _settings.EnableSound;
         FullscreenBeepToggle.IsChecked = _settings.EnableFullscreenFallbackBeep;
@@ -216,6 +221,7 @@ public partial class SettingsWindow : Window
         _settings.GlowMaxThicknessPixels = ReadInt(GlowMaxPxBox);
         _settings.OverlayOpacity = ReadDouble(OverlayOpacityBox);
         _settings.ReminderVolumePercent = ReadInt(VolumeBox);
+        _settings.ReTopmostIntervalSeconds = ReadInt(ReTopmostIntervalBox);
 
         /* 保存用户输入的原始表达式文本，以便写入 JSON 时保留可读性 */
         _settings.RawExpressions["minWorkSeconds"] = MinWorkBox.Text.Trim();
@@ -233,6 +239,7 @@ public partial class SettingsWindow : Window
         _settings.RawExpressions["glowMaxThicknessPixels"] = GlowMaxPxBox.Text.Trim();
         _settings.RawExpressions["overlayOpacity"] = OverlayOpacityBox.Text.Trim();
         _settings.RawExpressions["reminderVolumePercent"] = VolumeBox.Text.Trim();
+        _settings.RawExpressions["reTopmostIntervalSeconds"] = ReTopmostIntervalBox.Text.Trim();
         _settings.Language = LanguageBox.SelectedItem?.ToString() ?? "zh-CN";
         _settings.PreferredDisplay = (PreferredDisplayBox.SelectedValue?.ToString() ?? "auto").Trim();
         _settings.CloseBehaviorOnMainWindowClose = CloseBehaviorBox.SelectedValue is CloseBehavior b ? b : CloseBehavior.MinimizeToTray;
@@ -241,6 +248,7 @@ public partial class SettingsWindow : Window
         _settings.EnableEdgeGlow = EdgeGlowToggle.IsChecked == true;
         _settings.EnableCornerHover = CornerHoverToggle.IsChecked == true;
         _settings.FullscreenHideMode = FullscreenHideToggle.IsChecked == true;
+        _settings.EnablePeriodicReTopmost = ReTopmostToggle.IsChecked == true;
         _settings.EnableSecondaryMonitorFlash = SecondaryFlashToggle.IsChecked == true;
         _settings.EnableSound = SoundToggle.IsChecked == true;
         _settings.EnableFullscreenFallbackBeep = FullscreenBeepToggle.IsChecked == true;
@@ -298,6 +306,13 @@ public partial class SettingsWindow : Window
                 SetError(AwayThresholdBox, _localization.T("settings.err.away_gt_overtime"));
                 ok = false;
             }
+        }
+
+        /* 周期性置顶间隔验证 */
+        if (!ValidateInt(ReTopmostIntervalBox,
+            ElasticBreathSettings.ReTopmostIntervalSecondsMin, ElasticBreathSettings.ReTopmostIntervalSecondsMax))
+        {
+            ok = false;
         }
 
         ApplyButton.IsEnabled = ok;

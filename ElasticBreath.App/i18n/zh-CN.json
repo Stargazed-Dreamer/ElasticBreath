@@ -88,6 +88,8 @@
   "settings.glow_max_px": "光晕最大渗透宽度(像素, 12~600)",
   "settings.overlay_opacity": "光晕透明度(0.1~0.9)",
   "settings.fullscreen_hide": "全屏应用时隐藏悬浮层",
+  "settings.enable_re_topmost": "周期性重新置顶（防止Win+D等推后）",
+  "settings.re_topmost_interval": "重新置顶间隔(秒)",
   "settings.secondary_flash": "启用副屏边框闪烁",
   "settings.preferred_display": "主控显示器",
   "settings.close_behavior": "点击关闭主界面后",

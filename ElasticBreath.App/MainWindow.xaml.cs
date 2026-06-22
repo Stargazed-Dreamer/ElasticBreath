@@ -304,6 +304,7 @@ public partial class MainWindow : Window
         MonitorText.Text = _localization.Tf("monitor.target", targetScreen.DeviceName);
 
         _overlayWindow.SetBounds(targetScreen.Bounds);
+        _overlayWindow.ConfigureReTopmost(_settings.EnablePeriodicReTopmost, _settings.ReTopmostIntervalSeconds);
         _notificationWindow.PositionAtTopRight(targetScreen.Bounds);
 
         var hideForFullscreen = _settings.FullscreenHideMode && _displayTargetService.IsFullscreenForeground(targetScreen, _mainWindowHandle);

@@ -57,6 +57,12 @@ public sealed class ElasticBreathSettings
     public bool FullscreenHideMode { get; set; }
     public bool EnableSecondaryMonitorFlash { get; set; } = true;
 
+    /* 周期性重新置顶，防止 Win+D 等操作将悬浮层推到后面 */
+    public bool EnablePeriodicReTopmost { get; set; }
+    public int ReTopmostIntervalSeconds { get; set; } = 5;
+    public const int ReTopmostIntervalSecondsMin = 1;
+    public const int ReTopmostIntervalSecondsMax = 60;
+
     public bool EnableSound { get; set; }
     public int ReminderVolumePercent { get; set; } = 50;
     public bool EnableFullscreenFallbackBeep { get; set; }
@@ -96,6 +102,7 @@ public sealed class ElasticBreathSettings
         GlowMaxThicknessPixels = Math.Clamp(GlowMaxThicknessPixels, 12, 600);
         OverlayOpacity = Math.Clamp(OverlayOpacity, 0.1, 0.9);
         ReminderVolumePercent = Math.Clamp(ReminderVolumePercent, 0, 100);
+        ReTopmostIntervalSeconds = Math.Clamp(ReTopmostIntervalSeconds, ReTopmostIntervalSecondsMin, ReTopmostIntervalSecondsMax);
         PreferredDisplay ??= "auto";
         Language = string.IsNullOrWhiteSpace(Language) ? "zh-CN" : Language;
         return this;

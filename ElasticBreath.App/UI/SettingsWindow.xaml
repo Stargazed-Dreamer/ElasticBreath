@@ -93,6 +93,7 @@
                             <CheckBox x:Name="EdgeGlowToggle" Margin="0,0,18,8"/>
                             <CheckBox x:Name="CornerHoverToggle" Margin="0,0,18,8"/>
                             <CheckBox x:Name="FullscreenHideToggle" Margin="0,0,18,8"/>
+                            <CheckBox x:Name="ReTopmostToggle" Margin="0,0,18,8"/>
                         </WrapPanel>
                         <UniformGrid Columns="2">
                             <StackPanel Margin="0,0,10,10">
@@ -104,6 +105,11 @@
                                 <TextBlock x:Name="OverlayOpacityLabel"/>
                                 <TextBlock x:Name="OverlayOpacityError" Foreground="#FFC62929" FontSize="11" HorizontalAlignment="Right"/>
                                 <TextBox x:Name="OverlayOpacityBox" Margin="0,4,0,0" TextChanged="AnyInputChanged"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,10,10">
+                                <TextBlock x:Name="ReTopmostIntervalLabel"/>
+                                <TextBlock x:Name="ReTopmostIntervalError" Foreground="#FFC62929" FontSize="11" HorizontalAlignment="Right"/>
+                                <TextBox x:Name="ReTopmostIntervalBox" Margin="0,4,0,0" TextChanged="AnyInputChanged"/>
                             </StackPanel>
                         </UniformGrid>
                     </StackPanel>

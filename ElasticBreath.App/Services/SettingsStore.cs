@@ -30,7 +30,8 @@ public sealed class SettingsStore
         { "cornerHoverSeconds", "cornerHoverSeconds" },
         { "glowMaxThicknessPixels", "glowMaxThicknessPixels" },
         { "overlayOpacity", "overlayOpacity" },
-        { "reminderVolumePercent", "reminderVolumePercent" }
+        { "reminderVolumePercent", "reminderVolumePercent" },
+        { "reTopmostIntervalSeconds", "reTopmostIntervalSeconds" }
     };
 
     private readonly string _settingsPath;

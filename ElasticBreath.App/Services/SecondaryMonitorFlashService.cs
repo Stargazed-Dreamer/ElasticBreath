@@ -33,6 +33,8 @@ public sealed class SecondaryMonitorFlashService : IDisposable
 
             var window = GetOrCreate(screen.DeviceName);
             window.SetBounds(screen.Bounds);
+            /* 副屏窗口也配置周期性重新置顶 */
+            window.ConfigureReTopmost(settings.EnablePeriodicReTopmost, settings.ReTopmostIntervalSeconds);
 
             var visibleState = shouldFlash && _flashOn ? state : EdgeOverlayState.Hidden;
             window.UpdateOverlay(

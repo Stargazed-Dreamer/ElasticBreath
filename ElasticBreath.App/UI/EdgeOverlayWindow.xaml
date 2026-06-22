@@ -9,27 +9,10 @@
         Topmost="True"
         IsHitTestVisible="False"
         ShowActivated="False"
-        Focusable="False">
-    <Grid>
-        <Rectangle x:Name="TopGlow" VerticalAlignment="Top" Height="80" IsHitTestVisible="False"/>
-        <Rectangle x:Name="BottomGlow" VerticalAlignment="Bottom" Height="80" IsHitTestVisible="False"/>
-        <Rectangle x:Name="LeftGlow" HorizontalAlignment="Left" Width="80" IsHitTestVisible="False"/>
-        <Rectangle x:Name="RightGlow" HorizontalAlignment="Right" Width="80" IsHitTestVisible="False"/>
-
-        <Border x:Name="TopProgressHost"
-                Width="360"
-                Height="10"
-                Background="#30101010"
-                CornerRadius="5"
-                VerticalAlignment="Top"
-                Margin="0,8,0,0"
-                Visibility="Collapsed">
-            <Border x:Name="TopProgressFill"
-                    Height="10"
-                    Width="0"
-                    HorizontalAlignment="Left"
-                    CornerRadius="5"
-                    Background="#FF35BE5A"/>
-        </Border>
-    </Grid>
+        Focusable="False"
+        Width="0" Height="0">
+    <!--
+        此窗口仅用于获取 HWND，实际渲染由 UpdateLayeredWindow 完成。
+        WPF 自身的视觉树不包含任何内容，完全绕过 WPF 渲染管线。
+    -->
 </Window>
