@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -325,6 +325,7 @@ public partial class MainWindow : Window
 
         StartWorkButton.Content = _localization.T("button.start_work");
         StartRestButton.Content = _localization.T("button.start_rest");
+        PostponeButton.Content = _localization.T("button.postpone");
         StopButton.Content = _localization.T("button.stop_idle");
         OpenSettingsButton.Content = _localization.T("button.open_settings");
         OpenHelpButton.Content = _localization.T("button.open_help");
@@ -351,6 +352,20 @@ public partial class MainWindow : Window
         PauseRemindersButton.Content = snapshot.RemindersPaused
             ? _localization.T("button.resume_reminders")
             : _localization.T("button.pause_reminders");
+
+        /* 推迟按钮：仅在 Working 且压力为 Warning/Hard、未冷却、配额未用完时启用，
+           按钮文本附带剩余次数；冷却中显示剩余冷却时间 */
+        var postpone = snapshot.Postpone;
+        PostponeButton.IsEnabled = postpone.CanPostpone;
+        if (postpone.CooldownRemaining > TimeSpan.Zero)
+        {
+            PostponeButton.Content = _localization.Tf("button.postpone_cooldown", (int)Math.Ceiling(postpone.CooldownRemaining.TotalSeconds));
+        }
+        else
+        {
+            PostponeButton.Content = _localization.Tf("button.postpone_count", postpone.PostponesRemainingToday, postpone.DailyLimit);
+        }
+        PostponeButton.ToolTip = _localization.Tf("tooltip.postpone", postpone.PostponesUsedToday, postpone.DailyLimit);
 
         /* 根据当前状态动态切换按钮文本：
            - 工作中 → "暂停"，休息中 → "暂停"
@@ -811,6 +826,21 @@ public partial class MainWindow : Window
     /// 处理停止按钮点击事件，将引擎设置为闲置状态。
     /// </summary>
     private void StopButton_Click(object sender, RoutedEventArgs e) => _engine.StopToIdle();
+
+    /// <summary>
+    /// 处理推迟按钮点击事件：在预警/硬性区推迟当前工作提醒，进入冷却期。
+    /// </summary>
+    private void PostponeButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_engine.TryPostpone())
+        {
+            var screen = _displayTargetService.GetTargetScreen(_settings.PreferredDisplay);
+            var b = screen.Bounds;
+            _toastWindow.ShowMessage(
+                _localization.T("notify.postponed"),
+                new Rect(b.Left, b.Top, b.Width, b.Height));
+        }
+    }
 
     /// <summary>
     /// 处理暂停提醒按钮点击事件，切换提醒的暂停状态。

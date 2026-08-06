@@ -1,4 +1,4 @@
-﻿using System.Windows.Threading;
+using System.Windows.Threading;
 using ElasticBreath.App.Domain;
 
 namespace ElasticBreath.App.Services;
@@ -20,6 +20,7 @@ public sealed class BreathEngine : IDisposable
     private readonly ElasticBreathSettings _settings;
     private readonly InputMonitor _inputMonitor;
     private readonly DispatcherTimer _timer;
+    private readonly PostponeService _postponeService;
 
     private DateTime _lastTickUtc;
     private DateOnly _currentDay;
@@ -56,6 +57,8 @@ public sealed class BreathEngine : IDisposable
         _settings = settings;
         // 存储输入监控器的引用，用于后续事件监听
         _inputMonitor = inputMonitor;
+        // 初始化推迟服务，关联设置（冷却时长与每日上限）
+        _postponeService = new PostponeService(settings);
         // 将当前日期设置为今天（使用DateOnly类型仅包含日期信息）
         _currentDay = DateOnly.FromDateTime(DateTime.Now);
         // 创建并初始化一个DispatcherTimer计时器，用于周期性触发呼吸节律
@@ -140,6 +143,7 @@ public sealed class BreathEngine : IDisposable
                     _workingCycleElapsed = TimeSpan.Zero;
                 }
                 // 无论休息是否有效，都重置休息周期计时器
+                MaybeResetPostponeQuota();
                 _restingCycleElapsed = TimeSpan.Zero;
                 // 标记当前休息周期为有效
                 _restWasEffective = true;
@@ -216,6 +220,7 @@ public sealed class BreathEngine : IDisposable
         _restWasEffective = true;
         _state = ElasticBreathState.Idle;
         _workingCycleElapsed = TimeSpan.Zero;
+        MaybeResetPostponeQuota();
         _restingCycleElapsed = TimeSpan.Zero;
         _idleActivityProbeDuration = TimeSpan.Zero;
 // 调用PublishSnapshot方法以发布快照
@@ -275,6 +280,7 @@ public sealed class BreathEngine : IDisposable
                 _workingCycleElapsed = TimeSpan.Zero;
             }
             // 重置当前休息周期的累计时间
+            MaybeResetPostponeQuota();
             _restingCycleElapsed = TimeSpan.Zero;
             // 标记本次休息为有效
             _restWasEffective = true;
@@ -296,6 +302,30 @@ public sealed class BreathEngine : IDisposable
     /// </summary>
         PublishSnapshot();
     }
+
+    /// <summary>
+    /// 尝试推迟当前工作提醒。仅在 Working 且压力为 Warning/Hard、
+    /// 未在冷却期内、今日配额未用完时成功。
+    /// 成功时清除因空闲触发的待处理"工作→休息"切换并进入冷却。
+    /// </summary>
+    /// <returns>成功推迟返回 true；否则返回 false</returns>
+    public bool TryPostpone()
+    {
+        if (!_postponeService.TryPostpone(_state, GetWorkingPressure()))
+        {
+            return false;
+        }
+        /* 清除因空闲产生的自动休息切换，冷却期内不再触发 */
+        if (_pendingTransition is { Kind: PendingTransitionKind.WorkingToResting })
+        {
+            _pendingTransition = null;
+        }
+        PublishSnapshot();
+        return true;
+    }
+
+    /// <summary>获取推迟服务实例（供 UI 读取冷却/配额等运行时状态）</summary>
+    public PostponeService PostponeService => _postponeService;
 
     /// <summary>处理系统锁屏/解锁事件，锁屏时切换到 idle</summary>
     public void HandleSessionSwitch(bool isLocked)
@@ -343,6 +373,7 @@ public sealed class BreathEngine : IDisposable
 
         _lastTickUtc = nowUtc;
         ResetDailyCountersIfNeeded();
+        _postponeService.ResetDailyIfNeeded(_currentDay);
 
         var sample = _inputMonitor.Sample(_settings.SmartDetectGapThreshold);
         _lastIdleDuration = sample.IdleDuration;
@@ -433,8 +464,8 @@ public sealed class BreathEngine : IDisposable
 
             case ElasticBreathState.Working:
                 /* 无操作自动转休息：通过待处理切换显示倒计时 */
-                // 如果空闲时间达到自动休息阈值，调度从工作到休息的切换
-                if (sample.IdleDuration >= _settings.AutoRestAfterIdleThreshold)
+                // 推迟冷却期内不再因空闲触发自动休息提醒
+                if (sample.IdleDuration >= _settings.AutoRestAfterIdleThreshold && !_postponeService.IsInCooldown())
                 {
                     SchedulePendingTransition(PendingTransitionKind.WorkingToResting, "notify.working_to_resting");
                 }
@@ -605,13 +636,24 @@ public sealed class BreathEngine : IDisposable
                     // 如果休息被认为有效，则将工作计时重置为“休息转工作”的检测阈值
                     _workingCycleElapsed = _settings.RestToWorkDetectThreshold;
                 }
+                MaybeResetPostponeQuota();
                 _restingCycleElapsed = TimeSpan.Zero; // 重置休息周期计时
                 _restWasEffective = true; // 标记本次休息为有效（为后续逻辑准备）
-                _state = ElasticBreathState.Working; // 设置当前状态为“工作”
+                _state = ElasticBreathState.Working; // 设置当前状态为"工作"
                 break;
         }
 
         _pendingTransition = null;
+    }
+
+    /// <summary>
+    /// 退出休息状态时调用：若本次休息为"完整休息"
+    /// （休息时长 ≥ 最短有效休息时长），重置今日推迟配额。
+    /// 必须在重置 _restingCycleElapsed 之前调用。
+    /// </summary>
+    private void MaybeResetPostponeQuota()
+    {
+        _postponeService.NotifyRestCompleted(_restingCycleElapsed);
     }
 
     /// <summary>根据工作周期已用时间计算工作压力等级</summary>
@@ -697,6 +739,7 @@ public sealed class BreathEngine : IDisposable
             _remindersPaused,  // 提醒是否暂停
             _sessionLocked,  // 会话是否锁定
             _stateBeforePause,  // 暂停前状态
+            _postponeService.BuildSnapshot(_state, GetWorkingPressure()),  // 推迟状态
             DateTimeOffset.Now);  // 当前时间戳
     }
 

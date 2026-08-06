@@ -1,6 +1,13 @@
-﻿using System.Windows;
+using System.Windows;
 
 namespace ElasticBreath.App.Services;
+
+/// <summary>
+/// 角落悬停的当前进度快照，供角落圆环视觉使用。
+/// </summary>
+/// <param name="Corner">角落标识 "LT"/"RT"/"LB"/"RB"，无悬停时为 null</param>
+/// <param name="Progress">填充进度 0.0~1.0</param>
+public readonly record struct CornerHoverState(string? Corner, double Progress);
 
 /// <summary>
 /// CornerTriggerService 类，用于处理窗口角落触发逻辑，当光标在角落悬停指定时间后触发事件。
@@ -27,43 +34,31 @@ public sealed class CornerTriggerService
     {
         // 检测光标是否在角落区域，如果不在则重置状态并返回 false
         var corner = DetectCorner(bounds, cursor);
-/// <summary>
-/// 如果角为空，则重置活动角并返回假。
-/// </summary>
         if (corner is null)
         {
-            _activeCorner = null; // 重置活动角为null
-            _mustExitCornerBeforeNextTrigger = false; // 重置必须退出角的标志位为假
-            return false; // 返回假
+            _activeCorner = null;
+            _mustExitCornerBeforeNextTrigger = false;
+            return false;
         }
 
         // 如果上次触发后还未离开角落，则不允许再次触发
-/// <summary>
-/// 如果必须在下一个触发前退出角落，则返回 false。
-/// </summary>
         if (_mustExitCornerBeforeNextTrigger)
         {
-            // 当_mustExitCornerBeforeNextTrigger为true时，表示需要先退出角落，因此返回false以阻止进一步操作
             return false;
         }
 
         var now = DateTime.UtcNow;
         // 如果光标进入新的角落，记录进入时间并返回 false（等待悬停）
-/// <summary>
-        /// 判断活动角落是否发生变化并更新记录
-        /// </summary>
         if (_activeCorner != corner)
         {
-            _activeCorner = corner; // 更新活动角落标识
-            _enteredUtc = now; // 记录进入时间
-            return false; // 表示角落发生了变化
+            _activeCorner = corner;
+            _enteredUtc = now;
+            return false;
         }
 
         // 如果悬停时间不足指定阈值，则返回 false
-// 检查当前时间与进入时间的差值是否小于悬停持续时间
         if (now - _enteredUtc < hoverDuration)
         {
-            // 如果条件成立，表示悬停时间不足，返回 false
             return false;
         }
 
@@ -71,6 +66,25 @@ public sealed class CornerTriggerService
         _activeCorner = corner;
         _mustExitCornerBeforeNextTrigger = true;
         return true;
+    }
+
+    /// <summary>
+    /// 返回当前角落悬停的填充进度，供角落圆环视觉绘制。
+    /// 触发后（必须离开角落才能再次触发）返回无悬停状态，使圆环隐藏。
+    /// </summary>
+    /// <param name="hoverDuration">光标需要悬停的时间阈值</param>
+    public CornerHoverState GetHoverProgress(TimeSpan hoverDuration)
+    {
+        if (_activeCorner is null || _mustExitCornerBeforeNextTrigger)
+        {
+            return new CornerHoverState(null, 0);
+        }
+
+        var elapsed = DateTime.UtcNow - _enteredUtc;
+        var progress = hoverDuration > TimeSpan.Zero
+            ? Math.Clamp(elapsed.TotalSeconds / hoverDuration.TotalSeconds, 0.0, 1.0)
+            : 0.0;
+        return new CornerHoverState(_activeCorner, progress);
     }
 
     /// <summary>

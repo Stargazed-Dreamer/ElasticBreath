@@ -33,3 +33,17 @@ Desktop.ini
 ## 日志与临时文件
 *.log
 ~*
+
+## 本地快捷方式与设计稿（开发机私有，不应入库）
+*.lnk
+*.url
+
+## 发布产物
+publish/
+artifacts/
+release/
+*.zip
+
+## 运行时生成的用户配置与崩溃日志（便携版运行后产生）
+config/settings.json
+crash/

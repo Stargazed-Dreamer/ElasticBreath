@@ -1,0 +1,43 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.0
+
+      - name: Publish portable
+        run: dotnet publish ElasticBreath.App/ElasticBreath.App.csproj -c Release -p:PublishProfile=Portable -o ./publish
+
+      - name: Verify publish output
+        shell: pwsh
+        run: Get-ChildItem -Path ./publish -Recurse | Select-Object FullName
+
+      - name: Zip publish output
+        shell: pwsh
+        run: Compress-Archive -Path ./publish/* -DestinationPath ElasticBreath-portable-${{ github.ref_name }}.zip
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: ElasticBreath-portable-${{ github.ref_name }}.zip
+          body: |
+            ## ElasticBreath ${{ github.ref_name }}
+
+            Portable single-file build (framework-dependent; .NET 8 desktop runtime required).
+
+            See [CHANGELOG](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.

@@ -1,4 +1,4 @@
-﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
 using System.Drawing;
 
 namespace ElasticBreath.App.Interop;
@@ -64,7 +64,6 @@ internal static class Win32Native
         public int Bottom; // 下边界
     }
 
-    [DllImport("user32.dll")]
     /// <summary>
     /// 从 user32.dll 导入的函数，用于获取系统最后一次输入事件的信息。
     /// </summary>
@@ -409,6 +408,62 @@ internal static class Win32Native
         if (hObject != IntPtr.Zero)
             DeleteObject(hObject);
     }
+
+    #endregion
+
+    #region FlashWindowEx - 任务栏闪烁（全屏回退方案）
+
+    /// <summary>
+    /// FLASHWINFO 结构体，传递给 FlashWindowEx 控制任务栏按钮的闪烁行为。
+    /// </summary>
+    [StructLayout(LayoutKind.Sequential)]
+    public struct FlashInfo
+    {
+        public uint cbSize;
+        public IntPtr hwnd;
+        public uint dwFlags;
+        public uint uCount;
+        public uint dwTimeout;
+    }
+
+    // 闪烁标题栏
+    private const uint FlashwCaption = 0x0001;
+    // 闪烁任务栏按钮
+    private const uint FlashwTray = 0x0002;
+    // 持续闪烁，直到调用 FLASHW_STOP 或窗口进入前台
+    private const uint FlashwTimerNoFg = 0x000C;
+    // 停止闪烁
+    private const uint FlashwStop = 0x0000;
+    // 闪烁标题栏 + 任务栏
+    private const uint FlashwAll = FlashwCaption | FlashwTray;
+
+    /// <summary>
+    /// 调用 FlashWindowEx 使指定窗口的任务栏按钮闪烁。
+    /// 用于全屏应用遮挡光晕时的回退提示（design.md §7）。
+    /// </summary>
+    /// <param name="hwnd">目标窗口句柄</param>
+    /// <param name="start">true=开始闪烁直到窗口进入前台；false=停止闪烁</param>
+    public static void FlashTaskbar(IntPtr hwnd, bool start)
+    {
+        if (hwnd == IntPtr.Zero)
+        {
+            return;
+        }
+
+        var info = new FlashInfo
+        {
+            cbSize = (uint)Marshal.SizeOf<FlashInfo>(),
+            hwnd = hwnd,
+            dwFlags = start ? (FlashwAll | FlashwTimerNoFg) : FlashwStop,
+            uCount = uint.MaxValue,
+            dwTimeout = 0
+        };
+        FlashWindowEx(ref info);
+    }
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool FlashWindowEx(ref FlashInfo pwfi);
 
     #endregion
 }

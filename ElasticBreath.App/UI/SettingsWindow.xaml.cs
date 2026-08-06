@@ -42,6 +42,8 @@ public partial class SettingsWindow : Window
         _errors[SmartDetectGapBox] = SmartDetectGapError;
         _errors[AutoCountdownBox] = AutoCountdownError;
         _errors[CornerHoverSecondsBox] = CornerHoverSecondsError;
+        _errors[PostponeCooldownBox] = PostponeCooldownError;
+        _errors[DailyPostponeLimitBox] = DailyPostponeLimitError;
         _errors[GlowMaxPxBox] = GlowMaxPxError;
         _errors[OverlayOpacityBox] = OverlayOpacityError;
         _errors[VolumeBox] = VolumeError;
@@ -69,6 +71,8 @@ public partial class SettingsWindow : Window
         SmartDetectGapLabel.Text = LabeledRange("settings.smart_detect_gap", ElasticBreathSettings.SmartDetectGapSecondsMin, ElasticBreathSettings.SmartDetectGapSecondsMax);
         AutoCountdownLabel.Text = LabeledRange("settings.auto_countdown", ElasticBreathSettings.AutoTransitionCountdownSecondsMin, ElasticBreathSettings.AutoTransitionCountdownSecondsMax);
         CornerHoverSecondsLabel.Text = _localization.Tf("settings.label_with_range_float", _localization.T("settings.corner_hover_seconds"), ElasticBreathSettings.CornerHoverSecondsMin, ElasticBreathSettings.CornerHoverSecondsMax);
+        PostponeCooldownLabel.Text = LabeledRange("settings.postpone_cooldown", ElasticBreathSettings.PostponeCooldownSecondsMin, ElasticBreathSettings.PostponeCooldownSecondsMax);
+        DailyPostponeLimitLabel.Text = LabeledRange("settings.daily_postpone_limit", ElasticBreathSettings.DailyPostponeLimitMin, ElasticBreathSettings.DailyPostponeLimitMax);
         GlowMaxPxLabel.Text = _localization.T("settings.glow_max_px");
         OverlayOpacityLabel.Text = _localization.T("settings.overlay_opacity");
         ReTopmostIntervalLabel.Text = LabeledRange("settings.re_topmost_interval", ElasticBreathSettings.ReTopmostIntervalSecondsMin, ElasticBreathSettings.ReTopmostIntervalSecondsMax);
@@ -144,6 +148,8 @@ public partial class SettingsWindow : Window
         SmartDetectGapBox.Text = GetRawOrValue("smartDetectGapSeconds", _settings.SmartDetectGapSeconds);
         AutoCountdownBox.Text = GetRawOrValue("autoTransitionCountdownSeconds", _settings.AutoTransitionCountdownSeconds);
         CornerHoverSecondsBox.Text = GetRawOrValue("cornerHoverSeconds", _settings.CornerHoverSeconds);
+        PostponeCooldownBox.Text = GetRawOrValue("postponeCooldownSeconds", _settings.PostponeCooldownSeconds);
+        DailyPostponeLimitBox.Text = GetRawOrValue("dailyPostponeLimit", _settings.DailyPostponeLimit);
         GlowMaxPxBox.Text = GetRawOrValue("glowMaxThicknessPixels", _settings.GlowMaxThicknessPixels);
         OverlayOpacityBox.Text = GetRawOrValue("overlayOpacity", _settings.OverlayOpacity);
         VolumeBox.Text = GetRawOrValue("reminderVolumePercent", _settings.ReminderVolumePercent);
@@ -218,6 +224,8 @@ public partial class SettingsWindow : Window
         _settings.SmartDetectGapSeconds = ReadInt(SmartDetectGapBox);
         _settings.AutoTransitionCountdownSeconds = ReadInt(AutoCountdownBox);
         _settings.CornerHoverSeconds = ReadDouble(CornerHoverSecondsBox);
+        _settings.PostponeCooldownSeconds = ReadInt(PostponeCooldownBox);
+        _settings.DailyPostponeLimit = ReadInt(DailyPostponeLimitBox);
         _settings.GlowMaxThicknessPixels = ReadInt(GlowMaxPxBox);
         _settings.OverlayOpacity = ReadDouble(OverlayOpacityBox);
         _settings.ReminderVolumePercent = ReadInt(VolumeBox);
@@ -236,6 +244,8 @@ public partial class SettingsWindow : Window
         _settings.RawExpressions["smartDetectGapSeconds"] = SmartDetectGapBox.Text.Trim();
         _settings.RawExpressions["autoTransitionCountdownSeconds"] = AutoCountdownBox.Text.Trim();
         _settings.RawExpressions["cornerHoverSeconds"] = CornerHoverSecondsBox.Text.Trim();
+        _settings.RawExpressions["postponeCooldownSeconds"] = PostponeCooldownBox.Text.Trim();
+        _settings.RawExpressions["dailyPostponeLimit"] = DailyPostponeLimitBox.Text.Trim();
         _settings.RawExpressions["glowMaxThicknessPixels"] = GlowMaxPxBox.Text.Trim();
         _settings.RawExpressions["overlayOpacity"] = OverlayOpacityBox.Text.Trim();
         _settings.RawExpressions["reminderVolumePercent"] = VolumeBox.Text.Trim();
@@ -273,6 +283,8 @@ public partial class SettingsWindow : Window
         ok &= ValidateInt(SmartDetectGapBox, ElasticBreathSettings.SmartDetectGapSecondsMin, ElasticBreathSettings.SmartDetectGapSecondsMax);
         ok &= ValidateInt(AutoCountdownBox, ElasticBreathSettings.AutoTransitionCountdownSecondsMin, ElasticBreathSettings.AutoTransitionCountdownSecondsMax);
         ok &= ValidateDouble(CornerHoverSecondsBox, ElasticBreathSettings.CornerHoverSecondsMin, ElasticBreathSettings.CornerHoverSecondsMax);
+        ok &= ValidateInt(PostponeCooldownBox, ElasticBreathSettings.PostponeCooldownSecondsMin, ElasticBreathSettings.PostponeCooldownSecondsMax);
+        ok &= ValidateInt(DailyPostponeLimitBox, ElasticBreathSettings.DailyPostponeLimitMin, ElasticBreathSettings.DailyPostponeLimitMax);
         ok &= ValidateInt(GlowMaxPxBox, 12, 600);
         ok &= ValidateDouble(OverlayOpacityBox, 0.1, 0.9);
         ok &= ValidateInt(VolumeBox, 0, 100);

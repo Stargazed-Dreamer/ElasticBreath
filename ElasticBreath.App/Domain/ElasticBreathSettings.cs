@@ -1,4 +1,4 @@
-﻿namespace ElasticBreath.App.Domain;
+namespace ElasticBreath.App.Domain;
 
 /// <summary>
 /// 定义应用程序关闭行为的枚举。
@@ -52,6 +52,12 @@ public sealed class ElasticBreathSettings
     // 角落悬停秒数的最小值和最大值
     public const double CornerHoverSecondsMin = 0.5;
     public const double CornerHoverSecondsMax = 10;
+    // 推迟冷却秒数的最小值和最大值
+    public const int PostponeCooldownSecondsMin = 60;
+    public const int PostponeCooldownSecondsMax = 3600;
+    // 每日推迟上限的最小值和最大值
+    public const int DailyPostponeLimitMin = 0;
+    public const int DailyPostponeLimitMax = 20;
 
     // 语言设置，默认为中文（中国）
     public string Language { get; set; } = "zh-CN";
@@ -82,6 +88,10 @@ public sealed class ElasticBreathSettings
     public int AutoTransitionCountdownSeconds { get; set; } = 5;
     // 角落悬停秒数，默认1.5秒
     public double CornerHoverSeconds { get; set; } = 1.5;
+    // 推迟冷却秒数，默认5分钟（在预警/硬性区推迟后此时间内不再因空闲触发提醒）
+    public int PostponeCooldownSeconds { get; set; } = 5 * 60;
+    // 每日推迟上限，默认3次（达到上限后当日不再允许推迟，完整休息后重置）
+    public int DailyPostponeLimit { get; set; } = 3;
 
     // 是否启用顶部进度条
     public bool EnableTopProgressBar { get; set; }
@@ -133,6 +143,7 @@ public sealed class ElasticBreathSettings
     public TimeSpan SmartDetectGapThreshold => TimeSpan.FromSeconds(SmartDetectGapSeconds);
     public TimeSpan AutoTransitionCountdown => TimeSpan.FromSeconds(AutoTransitionCountdownSeconds);
     public TimeSpan CornerHoverDuration => TimeSpan.FromSeconds(CornerHoverSeconds);
+    public TimeSpan PostponeCooldown => TimeSpan.FromSeconds(PostponeCooldownSeconds);
 
     /// <summary>
     /// 清理和验证设置值，确保所有属性在有效范围内，并处理依赖关系。
@@ -164,6 +175,10 @@ public sealed class ElasticBreathSettings
         AutoTransitionCountdownSeconds = Math.Clamp(AutoTransitionCountdownSeconds, AutoTransitionCountdownSecondsMin, AutoTransitionCountdownSecondsMax);
         // 确保角落悬停秒数在有效范围内
         CornerHoverSeconds = Math.Clamp(CornerHoverSeconds, CornerHoverSecondsMin, CornerHoverSecondsMax);
+        // 确保推迟冷却秒数在有效范围内
+        PostponeCooldownSeconds = Math.Clamp(PostponeCooldownSeconds, PostponeCooldownSecondsMin, PostponeCooldownSecondsMax);
+        // 确保每日推迟上限在有效范围内
+        DailyPostponeLimit = Math.Clamp(DailyPostponeLimit, DailyPostponeLimitMin, DailyPostponeLimitMax);
         // 确保发光最大厚度像素在12到600之间
         GlowMaxThicknessPixels = Math.Clamp(GlowMaxThicknessPixels, 12, 600);
         // 确保覆盖层不透明度在0.1到0.9之间

@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using ElasticBreath.App.Domain;
 using System.IO;
@@ -32,6 +32,8 @@ public sealed class SettingsStore
         { "smartDetectGapSeconds", "smartDetectGapSeconds" },
         { "autoTransitionCountdownSeconds", "autoTransitionCountdownSeconds" },
         { "cornerHoverSeconds", "cornerHoverSeconds" },
+        { "postponeCooldownSeconds", "postponeCooldownSeconds" },
+        { "dailyPostponeLimit", "dailyPostponeLimit" },
         { "glowMaxThicknessPixels", "glowMaxThicknessPixels" },
         { "overlayOpacity", "overlayOpacity" },
         { "reminderVolumePercent", "reminderVolumePercent" },

@@ -83,6 +83,16 @@
                             <TextBlock x:Name="CornerHoverSecondsError" Foreground="#FFC62929" FontSize="11" HorizontalAlignment="Right"/>
                             <TextBox x:Name="CornerHoverSecondsBox" Margin="0,4,0,0" TextChanged="AnyInputChanged"/>
                         </StackPanel>
+                        <StackPanel Margin="0,0,10,10">
+                            <TextBlock x:Name="PostponeCooldownLabel"/>
+                            <TextBlock x:Name="PostponeCooldownError" Foreground="#FFC62929" FontSize="11" HorizontalAlignment="Right"/>
+                            <TextBox x:Name="PostponeCooldownBox" Margin="0,4,0,0" TextChanged="AnyInputChanged"/>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,10,10">
+                            <TextBlock x:Name="DailyPostponeLimitLabel"/>
+                            <TextBlock x:Name="DailyPostponeLimitError" Foreground="#FFC62929" FontSize="11" HorizontalAlignment="Right"/>
+                            <TextBox x:Name="DailyPostponeLimitBox" Margin="0,4,0,0" TextChanged="AnyInputChanged"/>
+                        </StackPanel>
                     </UniformGrid>
                 </GroupBox>
 

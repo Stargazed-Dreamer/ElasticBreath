@@ -1,4 +1,4 @@
-﻿namespace ElasticBreath.App.Domain;
+namespace ElasticBreath.App.Domain;
 
 /// <summary>
 /// 记录待处理状态切换的快照，包含切换类型、消息键和剩余时间。
@@ -13,6 +13,21 @@ public sealed record DetectionProbeSnapshot(
     string MessageKey,
     TimeSpan Elapsed,
     TimeSpan Required);
+
+/// <summary>
+/// 推迟功能的当前可用性快照，供 UI 决定按钮启用状态与提示文案。
+/// </summary>
+/// <param name="CanPostpone">当前是否允许推迟（状态/压力/冷却/配额均满足）</param>
+/// <param name="PostponesRemainingToday">今日剩余推迟次数</param>
+/// <param name="PostponesUsedToday">今日已使用推迟次数</param>
+/// <param name="DailyLimit">每日推迟上限</param>
+/// <param name="CooldownRemaining">冷却剩余时间（未在冷却中则为 Zero）</param>
+public sealed record PostponeSnapshot(
+    bool CanPostpone,
+    int PostponesRemainingToday,
+    int PostponesUsedToday,
+    int DailyLimit,
+    TimeSpan CooldownRemaining);
 
 /// <summary>
 /// 弹性呼吸引擎的完整状态快照，用于 UI 显示和状态持久化。
@@ -31,6 +46,7 @@ public sealed record EngineSnapshot(
     bool RemindersPaused,
     bool SessionLocked,
     ElasticBreathState StateBeforePause,
+    PostponeSnapshot Postpone,
     DateTimeOffset UpdatedAt)
 {
     /// <summary>
