@@ -57,3 +57,6 @@ docs/工作.png
 docs/超时.png
 docs/预警.png
 PUBLISH-ALIGNMENT-DRAFT.md
+
+## 自定义背景生成的后缀截图（对比用，不入库）
+docs/screenshots/*--*

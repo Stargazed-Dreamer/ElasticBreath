@@ -10,9 +10,11 @@ namespace ElasticBreath.DemoRenderer;
 /// <summary>
 /// 离线渲染工具：复用 <see cref="EdgeOverlayPixelRenderer"/> 生成项目展示用图。
 /// 输出 6 种状态 PNG、顶部进度条五联对比 PNG，以及一张 Warning 脉冲 GIF。
-/// 背景默认为合成渐变壁纸（零隐私风险）；可通过 <c>--bg &lt;path&gt;</c> 指定自定义背景图，
-/// 用于测试不同壁纸下的视觉效果。自定义背景输出文件名会追加 <c>--&lt;basename&gt;</c> 后缀，
-/// 不会覆盖默认合成背景版本，便于多图对比。
+/// 支持两种运行方式：
+///   - 交互模式（双击 exe / 无参数运行）：提示输入背景图片路径（或回车用合成渐变壁纸），
+///     输入后一次性生成全部展示图。
+///   - 命令行模式（供脚本使用）：--bg &lt;path&gt; / --out &lt;dir&gt; / --thickness &lt;px&gt; / --help。
+/// 自定义背景输出文件名会追加 <c>--&lt;basename&gt;</c> 后缀，不会覆盖默认合成背景版本，便于多图对比。
 /// </summary>
 internal static class Program
 {
@@ -23,6 +25,13 @@ internal static class Program
 
     private static void Main(string[] args)
     {
+        // 无参数（双击 exe）：进入交互模式，提示输入背景图路径后生成全部展示图
+        if (args.Length == 0)
+        {
+            RunInteractive();
+            return;
+        }
+
         var opts = ParseArgs(args);
         if (opts is null)
             return;
@@ -42,6 +51,66 @@ internal static class Program
         GeneratePulseGif(opts.OutDir, bgBytes, opts.FileSuffix, opts.Thickness);
 
         Console.WriteLine("All assets generated.");
+    }
+
+    /// <summary>
+    /// 交互模式：提示用户输入背景图片路径，输入后生成全部展示图。
+    /// 输出到仓库 docs/screenshots/（命令行模式用 --out 可覆盖）。
+    /// </summary>
+    private static void RunInteractive()
+    {
+        Console.WriteLine("ElasticBreath 演示图生成工具");
+        Console.WriteLine("================================");
+        Console.WriteLine("将生成：6 种状态 PNG、顶部进度条五联对比 PNG、Warning 脉冲 GIF");
+        Console.WriteLine();
+        Console.Write("请输入背景图片路径（jpg/png/bmp；直接回车使用合成渐变壁纸）：");
+        var input = Console.ReadLine()?.Trim();
+
+        var outDir = Path.Combine(FindRepoRoot(AppContext.BaseDirectory), "docs", "screenshots");
+        byte[] bgBytes;
+        string suffix;
+        string bgDesc;
+
+        if (string.IsNullOrWhiteSpace(input))
+        {
+            bgBytes = GenerateSyntheticWallpaper();
+            suffix = "";
+            bgDesc = "合成渐变壁纸（默认）";
+        }
+        else if (!File.Exists(input))
+        {
+            Console.Error.WriteLine($"错误：文件不存在：{input}");
+            WaitForExit();
+            return;
+        }
+        else
+        {
+            bgBytes = LoadBackgroundBytes(input);
+            suffix = "--" + SanitizeSuffix(Path.GetFileNameWithoutExtension(input));
+            bgDesc = Path.GetFullPath(input);
+        }
+
+        Console.WriteLine($"背景：{bgDesc}");
+        Console.WriteLine($"输出目录：{outDir}");
+        Console.WriteLine("生成中...");
+        Console.WriteLine();
+
+        Directory.CreateDirectory(outDir);
+        GenerateStatePngs(outDir, bgBytes, suffix, DefaultGlowThickness);
+        GenerateTopProgressGrid(outDir, bgBytes, suffix, DefaultGlowThickness);
+        GeneratePulseGif(outDir, bgBytes, suffix, DefaultGlowThickness);
+
+        Console.WriteLine();
+        Console.WriteLine("全部展示图生成完毕。");
+        WaitForExit();
+    }
+
+    /// <summary>交互模式下暂停，避免双击打开的控制台窗口闪退。</summary>
+    private static void WaitForExit()
+    {
+        Console.WriteLine();
+        Console.WriteLine("按回车键退出...");
+        Console.ReadLine();
     }
 
     // ----------------------------------------------------------------
@@ -157,6 +226,7 @@ internal static class Program
         ElasticBreath.DemoRenderer - 离线生成项目展示用截图
 
         用法:
+          （无参数 / 双击 exe）进入交互模式，提示输入背景图路径后生成全部展示图
           dotnet run --project ElasticBreath.DemoRenderer -c Release -- [--bg <图片路径>] [--out <输出目录>] [--thickness <像素>]
 
         参数:
@@ -166,10 +236,10 @@ internal static class Program
           -h, --help                  显示本帮助。
 
         示例:
-          # 用合成背景生成（默认）
+          # 交互模式（推荐）：输入背景图路径 → 生成全部展示图
           dotnet run --project ElasticBreath.DemoRenderer -c Release
 
-          # 用自定义背景图测试
+          # 用自定义背景图生成（命令行模式）
           dotnet run --project ElasticBreath.DemoRenderer -c Release -- --bg D:\wallpapers\1.jpg
 
           # 指定输出目录
