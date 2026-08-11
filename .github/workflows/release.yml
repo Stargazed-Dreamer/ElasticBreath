@@ -12,10 +12,10 @@ jobs:
   release:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           # 用 8.0.x 跟踪最新 8.0 补丁版本；固定 8.0.0 会因该 SDK 已下架导致 404
           dotnet-version: 8.0.x
