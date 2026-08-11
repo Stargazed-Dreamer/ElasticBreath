@@ -26,12 +26,16 @@
                 BorderBrush="#FFD1E8DC"
                 BorderThickness="1"
                 CornerRadius="10">
-            <ScrollViewer VerticalScrollBarVisibility="Auto">
-                <TextBlock x:Name="BodyText"
-                           TextWrapping="Wrap"
-                           LineHeight="24"
-                           Foreground="#FF1E3F30"/>
-            </ScrollViewer>
+            <FlowDocumentScrollViewer x:Name="DocViewer"
+                                      VerticalScrollBarVisibility="Auto"
+                                      IsToolBarVisible="False">
+                <FlowDocument x:Name="Doc"
+                              FontFamily="Microsoft YaHei UI"
+                              FontSize="13"
+                              Foreground="#FF1E3F30"
+                              TextAlignment="Left"
+                              PagePadding="0"/>
+            </FlowDocumentScrollViewer>
         </Border>
 
         <Button Grid.Row="2"

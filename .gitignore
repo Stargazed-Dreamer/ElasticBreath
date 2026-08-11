@@ -47,3 +47,13 @@ release/
 ## 运行时生成的用户配置与崩溃日志（便携版运行后产生）
 config/settings.json
 crash/
+
+## 开发机私有备忘（AGENTS.md §1.1）
+todo.txt
+
+## 临时诊断产物（本机调试用，不应发布）
+docs/temp/
+docs/工作.png
+docs/超时.png
+docs/预警.png
+PUBLISH-ALIGNMENT-DRAFT.md

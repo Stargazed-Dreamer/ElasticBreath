@@ -11,13 +11,14 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <Version>0.9.0</Version>
-    <AssemblyVersion>0.9.0.0</AssemblyVersion>
-    <FileVersion>0.9.0.0</FileVersion>
-    <InformationalVersion>0.9.0</InformationalVersion>
+    <Version>1.0.0</Version>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <InformationalVersion>1.0.0</InformationalVersion>
+    <Authors>Stargazed-Dreamer</Authors>
     <Company>ElasticBreath</Company>
     <Product>ElasticBreath</Product>
-    <Copyright>Copyright © ElasticBreath contributors</Copyright>
+    <Copyright>Copyright © Stargazed-Dreamer</Copyright>
     <Description>面向长时间电脑使用者的弹性休息引导工具。基于水位预警模型，利用边缘视觉与弹性时间窗口提供不可习惯化的休息引导。</Description>
     <NeutralLanguage>zh-CN</NeutralLanguage>
   </PropertyGroup>
@@ -29,6 +30,13 @@
     <Content Include="Resource\icon.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="app.meta.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ElasticBreath.Rendering\ElasticBreath.Rendering.csproj" />
   </ItemGroup>
 
 </Project>

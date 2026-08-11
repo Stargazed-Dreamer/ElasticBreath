@@ -1,0 +1,8 @@
+{
+  "version": "1.0.0",
+  "authors": "Stargazed-Dreamer",
+  "copyright": "Copyright © 2026 Stargazed-Dreamer",
+  "license": "MIT License · Copyright © 2026 Stargazed-Dreamer",
+  "repository": "https://github.com/Stargazed-Dreamer/ElasticBreath",
+  "shortDescription": "面向长时间电脑使用者的弹性休息引导工具。基于水位预警模型，利用边缘视觉与弹性时间窗口提供不可习惯化的休息引导。"
+}

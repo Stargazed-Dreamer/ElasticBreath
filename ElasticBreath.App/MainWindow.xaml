@@ -120,17 +120,17 @@
             </Border>
         </Grid>
 
-        <UniformGrid Grid.Row="2" Margin="0,14,0,0" Columns="5">
+        <UniformGrid Grid.Row="2" Margin="0,14,0,0" Columns="4">
             <Button x:Name="StartWorkButton" Margin="4" Height="40" Click="StartWorkButton_Click"/>
             <Button x:Name="StartRestButton" Margin="4" Height="40" Click="StartRestButton_Click"/>
-            <Button x:Name="PostponeButton" Margin="4" Height="40" Click="PostponeButton_Click" IsEnabled="False"/>
             <Button x:Name="StopButton" Margin="4" Height="40" Click="StopButton_Click"/>
             <Button x:Name="PauseRemindersButton" Margin="4" Height="40" Click="PauseRemindersButton_Click"/>
         </UniformGrid>
 
-        <UniformGrid Grid.Row="3" Margin="0,8,0,0" Columns="2">
+        <UniformGrid Grid.Row="3" Margin="0,8,0,0" Columns="3">
             <Button x:Name="OpenSettingsButton" Margin="5" Height="36" Click="OpenSettingsButton_Click"/>
             <Button x:Name="OpenHelpButton" Margin="5" Height="36" Click="OpenHelpButton_Click"/>
+            <Button x:Name="OpenAboutButton" Margin="5" Height="36" Click="OpenAboutButton_Click"/>
         </UniformGrid>
 
         <Border Grid.Row="4"

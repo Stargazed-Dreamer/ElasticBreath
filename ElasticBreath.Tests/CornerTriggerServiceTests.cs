@@ -19,27 +19,43 @@ public class CornerTriggerServiceTests
         Assert.False(svc.TryTrigger(Bounds, Center, hover));
     }
 
-    [Theory]
-    [InlineData(0, 0, "LT")]
-    [InlineData(1000, 0, "RT")]
-    [InlineData(0, 1000, "LB")]
-    [InlineData(1000, 1000, "RB")]
-    public void TryTrigger_TriggersAfterHoverDuration(double x, double y, string corner)
+    [Fact]
+    public void TryTrigger_TriggersAfterHoverDuration_AtTopLeft()
     {
         var svc = new CornerTriggerService();
-        var cursor = new Point(x, y);
+        var cursor = new Point(0, 0);
         var hover = TimeSpan.FromMilliseconds(80);
 
         // First call registers entry; returns false (waiting for hover).
         Assert.False(svc.TryTrigger(Bounds, cursor, hover));
         // The entered corner is exposed via hover progress.
-        Assert.Equal(corner, svc.GetHoverProgress(hover).Corner);
+        Assert.Equal("LT", svc.GetHoverProgress(hover).Corner);
         // Immediate second call: not enough elapsed time yet.
         Assert.False(svc.TryTrigger(Bounds, cursor, hover));
         // Wait past hover duration.
         Thread.Sleep(120);
         // Should trigger now.
         Assert.True(svc.TryTrigger(Bounds, cursor, hover));
+    }
+
+    /// <summary>
+    /// 仅左上角参与触发：右上角（邻近关闭按钮）、右下角（显示桌面）、
+    /// 左下角（可能为开始菜单）一律不响应。
+    /// </summary>
+    [Theory]
+    [InlineData(1000, 0)]
+    [InlineData(0, 1000)]
+    [InlineData(1000, 1000)]
+    public void TryTrigger_DoesNotTrigger_AtOtherCorners(double x, double y)
+    {
+        var svc = new CornerTriggerService();
+        var cursor = new Point(x, y);
+        var hover = TimeSpan.FromMilliseconds(80);
+
+        Assert.False(svc.TryTrigger(Bounds, cursor, hover));
+        Thread.Sleep(120);
+        Assert.False(svc.TryTrigger(Bounds, cursor, hover));
+        Assert.Null(svc.GetHoverProgress(hover).Corner);
     }
 
     [Fact]
@@ -109,7 +125,7 @@ public class CornerTriggerServiceTests
     }
 
     [Fact]
-    public void GetHoverProgress_ReturnsNull_AfterTrigger()
+    public void GetHoverProgress_StaysGreenAfterTrigger_UntilCursorLeaves()
     {
         var svc = new CornerTriggerService();
         var cursor = new Point(0, 0);
@@ -117,9 +133,16 @@ public class CornerTriggerServiceTests
 
         svc.TryTrigger(Bounds, cursor, hover);
         Thread.Sleep(120);
-        svc.TryTrigger(Bounds, cursor, hover); // triggers
+        Assert.True(svc.TryTrigger(Bounds, cursor, hover)); // triggers
 
+        // 触发后鼠标仍在左上角：保持满格进度（指示圆保持绿色）。
         var state = svc.GetHoverProgress(hover);
+        Assert.Equal("LT", state.Corner);
+        Assert.Equal(1.0, state.Progress);
+
+        // 鼠标移出左上角：无悬停状态（指示圆收回）。
+        svc.TryTrigger(Bounds, Center, hover);
+        state = svc.GetHoverProgress(hover);
         Assert.Null(state.Corner);
         Assert.Equal(0, state.Progress);
     }

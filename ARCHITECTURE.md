@@ -19,7 +19,7 @@ ElasticBreath 是一个 Windows WPF（.NET 8）单进程应用，采用经典的
 │  │ BreathEngine (1s DispatcherTimer, 状态机, 发布 EngineSnapshot)  │    │
 │  │   ├─ InputMonitor        (GetLastInputInfo + DenseInput 跟踪)   │    │
 │  │   │    └─ RemoteInputFilterService (前台进程名匹配远程工具)     │    │
-│  │   ├─ CornerTriggerService (角落悬停 1.5s + 再触发门控)          │    │
+│  │   ├─ CornerTriggerService (左上角悬停 1.5s + 再触发门控)         │    │
 │  │   ├─ DisplayTargetService   (preferred→primary→cursor 回退)     │    │
 │  │   ├─ SecondaryMonitorFlashService (副屏 EdgeOverlayWindow 闪烁) │    │
 │  │   ├─ SessionMonitor   (Microsoft.Win32.SystemEvents.SessionSwitch)│   │
@@ -63,7 +63,7 @@ ElasticBreath 是一个 Windows WPF（.NET 8）单进程应用，采用经典的
 | :--- | :--- |
 | `BreathEngine.cs` | 核心状态机。1s `DispatcherTimer`；`OnTick` 推进计时、判定自动切换、推进待处理切换倒计时；通过 `SnapshotChanged` 发布 `EngineSnapshot`。提供手动命令与角落切换、会话切换处理。 |
 | `InputMonitor.cs` | 调用 `Win32Native.GetIdleDuration` 采样系统空闲时长，并跟踪 `DenseInputDuration`（密集输入持续时长，用于 `RestToWork` 判定）。注入 `RemoteInputFilterService` 以在远程工具前台时抑制误判。返回 `InputSample`。 |
-| `CornerTriggerService.cs` | 角落悬停检测。`CornerHitSize = 18` 像素判定区；`TryTrigger` 返回是否达成 `hoverDuration`；`_mustExitCornerBeforeNextTrigger` 门控确保触发后必须先离开角落区域才允许下一次触发，防止连发。 |
+| `CornerTriggerService.cs` | 左上角悬停检测。`CornerHitSize = 18` 像素判定区（仅左上角）；`TryTrigger` 返回是否达成 `hoverDuration`；`_mustExitCornerBeforeNextTrigger` 门控确保触发后必须先离开左上角区域才允许下一次触发，防止连发；`GetHoverProgress` 输出悬停进度供指示圆视觉使用，触发后保持 `1.0` 使圆保持绿色直到鼠标移开。 |
 | `DisplayTargetService.cs` | 选定目标屏幕：首选显示器（按 `DeviceName` 匹配）→ 主屏 → 光标所在屏。`IsFullscreenForeground` 通过 `GetForegroundWindow` + `GetWindowRect` 与目标屏边界（容差 2px）比较，判定是否被全屏应用覆盖。 |
 | `SecondaryMonitorFlashService.cs` | 多屏增强。为每个非主屏 `Screen` 懒创建一个 `EdgeOverlayWindow`，当主屏浮层被忽略（`primaryScreenIgnored`）时以 700ms 周期闪烁副屏边框；实现 `IDisposable` 统一释放。 |
 | `SessionMonitor.cs` | 包装 `Microsoft.Win32.SystemEvents.SessionSwitch`，通过 `SessionLockChanged` 事件向引擎报告锁屏/解锁。 |
@@ -77,9 +77,10 @@ ElasticBreath 是一个 Windows WPF（.NET 8）单进程应用，采用经典的
 
 | 文件 | 职责 |
 | :--- | :--- |
-| `EdgeOverlayWindow.xaml(.cs)` | 边缘光晕与顶部进度条。WPF `Window` 的 HWND 在 `SourceInitialized` 时通过 `Win32Native.SetLayered` 转为 Win32 Layered Window，绕过 WPF 渲染管线。200ms `DispatcherTimer` 驱动脉冲/闪烁；`FillPixels` 以 `unsafe byte*` 手写填充四边渐变光晕（BGRA），`DrawProgressBar` 绘制居中顶部进度条；通过 `UpdateLayeredWindow` 提交。`EdgeOverlayState` 枚举映射压力等级到视觉态。 |
+| `EdgeOverlayWindow.xaml(.cs)` | 边缘光晕与顶部进度条。WPF `Window` 的 HWND 在 `SourceInitialized` 时通过 `Win32Native.SetLayered` 转为 Win32 Layered Window，绕过 WPF 渲染管线。200ms `DispatcherTimer` 驱动脉冲/闪烁；像素填充（颜色表、四边渐变、顶部进度条）委托给 [`ElasticBreath.Rendering.EdgeOverlayPixelRenderer`](#25-elasticbreathrendering纯渲染逻辑无平台依赖)，本类只负责 HWND/DIB Section 生命周期与 `UpdateLayeredWindow` 提交。`EdgeOverlayState` 枚举迁移至 `ElasticBreath.Rendering` 命名空间，映射压力等级到视觉态。 |
 | `CountdownNotificationWindow.xaml(.cs)` | 右上角非模态卡片，显示待处理切换类型与剩余秒数；任意位置点击触发 `CancelRequested` 事件，由 `MainWindow` 转发到 `engine.CancelPendingTransition()`。 |
 | `ToastWindow.xaml(.cs)` | 滑入式提示窗口（角落切换成功等瞬时反馈）。 |
+| `CornerIndicatorWindow.xaml(.cs)` | 左上角悬停指示圆。置顶、点击穿透、不抢焦点的透明小窗，圆心位于屏幕左上角（用户可见右下角四分之一）；进入角落时弹性胀大到半径 20px，悬停期间颜色由灰（`#7F7F7F` 55%）渐变到主题绿（`#32B265` 80%），切换后保持绿色直到鼠标移出，移出后弹性收回。`MainWindow` 的 250ms 角落轮询驱动 `ShowAt`/`Retract`。 |
 | `SettingsWindow.xaml(.cs)` | 模态设置对话框，按“时间参数 / 交互与检测 / 视觉参数 / 显示 / 声音与通知”分组；输入框支持算术表达式，保存时调用 `ExpressionEvaluator` 校验并写入 `RawExpressions`。 |
 | `HelpWindow.xaml(.cs)` | 简易功能说明窗口。 |
 
@@ -88,6 +89,18 @@ ElasticBreath 是一个 Windows WPF（.NET 8）单进程应用，采用经典的
 | 文件 | 职责 |
 | :--- | :--- |
 | `Win32Native.cs` | 唯一的 P/Invoke 表面。输入：`GetLastInputInfo`/`GetCursorPos`/`GetForegroundWindow`/`GetWindowRect`/`GetWindowThreadProcessId`；窗口样式与定位：`GetWindowLongPtr`/`SetWindowLongPtr`/`SetWindowPos`/`ForceTopmost`/`SetClickThroughNoActivate`/`SetLayered`/`SetWindowBoundsPixels`；Layered Window 渲染：`CreateDIBSection`(`CreateArgbBitmap`)/`UpdateLayeredWindow`(`RenderLayeredWindow`)/GDI 对象销毁。 |
+
+<a id="2.5-elasticbreathrendering纯渲染逻辑无平台依赖"></a>
+
+### 2.5 ElasticBreath.Rendering/（纯渲染逻辑，无平台依赖）
+
+独立项目（`net8.0`，无 WPF/WinForms/Win32 using），从 `EdgeOverlayWindow` 抽取的纯像素渲染逻辑。同时被主应用的 Layered Window 与离线截图工具 `ElasticBreath.DemoRenderer` 引用，保证实机与截图像素级一致。
+
+| 文件 | 职责 |
+| :--- | :--- |
+| `EdgeOverlayPixelRenderer.cs` | 静态类。`EdgeOverlayState` 枚举（`Hidden`/`Warning`/`Hard`/`RestBase`/`RestElastic`/`RestOvertime`/`Paused`）映射压力等级到视觉态；`EdgeOverlayVisual` record struct 承载颜色、透明度因子、脉冲周期、闪烁标记；`ResolveVisual` 产出视觉参数；`ComputeOpacityFactor` 计算某时刻的脉冲/闪烁权重；`Render` 在 BGRA 缓冲上绘制四边渐变光晕与顶部进度条，`DrawProgressBar` 居中 360×10 距顶 8px（仍硬编码，见 §11），`BlendPixel` 处理角落叠加。 |
+
+`ElasticBreath.DemoRenderer`（`net8.0-windows` + `System.Drawing.Common` NuGet，未启用 `UseWindowsForms`）是离线控制台工具，调用上述渲染器生成 `docs/screenshots/` 下的展示图：6 种状态 PNG、顶部进度条五联对比 PNG、Warning 脉冲 GIF。背景统一为合成渐变壁纸，无任何真实桌面/任务栏/窗口内容。
 
 ## 3. 核心机制
 
@@ -146,7 +159,7 @@ UI 通过 `EngineSnapshot.PendingTransition` 拿到剩余秒数与消息键，�
 - `WS_EX_TOOLWINDOW`：不出现在任务栏 / Alt+Tab。
 - `WS_EX_NOACTIVATE`：永不抢焦点，符合“不阻断中心视野”的设计红线。
 
-每帧由 `FillPixels`（`unsafe byte*`）填充四边渐变（上/下/左/右各做线性 alpha 衰减，角落用 `BlendPixel` 做 alpha 叠加避免硬边），再由 `DrawProgressBar` 绘制居中顶部进度条，最后 `RenderLayeredWindow` 一次性提交。
+每帧由 `EdgeOverlayPixelRenderer.Render`（`unsafe byte*`）填充四边渐变（上/下/左/右各做线性 alpha 衰减，角落用 `BlendPixel` 做 alpha 叠加避免硬边），再由 `DrawProgressBar` 绘制居中顶部进度条，最后 `RenderLayeredWindow` 一次性提交。
 
 ### 5.2 P/Invoke 表面
 
@@ -154,7 +167,64 @@ UI 通过 `EngineSnapshot.PendingTransition` 拿到剩余秒数与消息键，�
 
 ### 5.3 AllowUnsafeBlocks 说明
 
-`.csproj` 开启 `<AllowUnsafeBlocks>true</AllowUnsafeBlocks>`，原因是 `FillPixels` / `BlendPixel` / `DrawProgressBar` 使用 `byte*` 直接操作 `CreateDIBSection` 返回的非托管像素内存指针，以避免每帧 `Marshal.Copy` 托管数组的开销。这是达到设计性能红线（§10）的关键。
+`.csproj` 开启 `<AllowUnsafeBlocks>true</AllowUnsafeBlocks>`，原因是 `EdgeOverlayPixelRenderer.Render` / `BlendPixel` / `DrawProgressBar` 使用 `byte*` 直接操作 `CreateDIBSection` 返回的非托管像素内存指针，以避免每帧 `Marshal.Copy` 托管数组的开销。这是达到设计性能红线（§10）的关键。
+
+### 5.4 premultiplied alpha 约定（避坑，必读）
+
+**这是最容易踩的坑，单独成节。** 任何修改 `EdgeOverlayPixelRenderer` 或新增 Layered Window 像素路径的人，必须先读完本节。
+
+#### 现象
+
+实机运行时，四边光晕"透明逐渐变浅的效果消失，透明度一样"——边缘到中心颜色几乎恒定，看不出渐变。但离线 `DemoRenderer` 生成的 PNG/GIF 渐变完全正常。
+
+#### 根因
+
+`Win32Native.RenderLayeredWindow` 调用 `UpdateLayeredWindow` 时，`BlendFunction.AlphaFormat = AC_SRC_ALPHA`（=1）。这告诉 GDI：**位图的 RGB 已经是 premultiplied alpha**（即 `RGB_premul = RGB_straight * alpha / 255`），混合公式为：
+
+```
+Result.RGB = Source.RGB_premul + Dest.RGB * (1 - Source.Alpha/255)
+```
+
+但 `EdgeOverlayPixelRenderer.Render` 早期版本写入的是 **straight alpha**（RGB 保持原值，未乘 alpha）。此时：
+
+- `alpha` 从 255 衰减到 1 时，`Source.RGB_premul` 项被错误地保持为满值（255,83,83），只有 `(1 - alpha/255)` 这一项在变；
+- 最终 `Result.RGB ≈ (255,83,83) + Dest * (1 - 1/255) ≈ (255,83,83)`，颜色几乎不变 → 渐变消失。
+
+`DemoRenderer` 之所以"正常"，是因为它走的是 `System.Drawing.Bitmap`（`Format32bppArgb`）+ 自实现的 `CompositeOnto`，用的是 straight alpha 公式 `out = dst*(1-a) + src*a`，恰好与 straight alpha 输入匹配。两条路径用了不同的混合语义，导致"截图对、实机错"。
+
+#### 硬性约定
+
+1. **`EdgeOverlayPixelRenderer.Render` 的输出必须是 premultiplied BGRA。** 任何写入 `pixels[offset..offset+3]` 的代码，RGB 必须乘以 `alpha/255`：
+   ```csharp
+   var a = (byte)(alpha * ratio);
+   var pr = (byte)(r * a / 255);
+   var pg = (byte)(g * a / 255);
+   var pb = (byte)(b * a / 255);
+   pixels[offset]     = pb;  // B
+   pixels[offset + 1] = pg;  // G
+   pixels[offset + 2] = pr;  // R
+   pixels[offset + 3] = a;   // A
+   ```
+2. **`BlendPixel`（角落叠加）必须做 premultiplied over 操作**：`outA = srcA + dstA*(1-srcA/255)`，`outRGB_premul = srcRGB_premul + dstRGB_premul*(1-srcA/255)`。
+3. **`DrawProgressBar` 的背景与填充同样要 premultiply**，不能因为是"半透明深色底"就偷懒写 straight 值。
+4. **任何新增的像素写入路径（进度条、角标、闪烁层等）都必须遵守上述约定。** Review 时若看到 `pixels[offset] = b;`（直接写原色）而旁边 `pixels[offset+3] = a;`（alpha 是变量），即可判定违规。
+
+#### 与 DemoRenderer 的一致性
+
+`DemoRenderer.CompositeOnto` 必须使用 premultiplied over 公式与 `Render` 输出匹配：
+
+```csharp
+var inv = 255 - a;
+background[i] = (byte)Math.Min(255, overlay[i] + (background[i] * inv) / 255);
+```
+
+两条路径共用同一份 `EdgeOverlayPixelRenderer`，是保证"实机像素 == 截图像素"的前提。改 `Render` 时务必同步检查 `CompositeOnto`，反之亦然。
+
+#### 验证方法
+
+- **像素级验证**：实机运行触发 `Warning`/`Hard` 状态后截屏，用 Python/PIL 读取屏幕边缘像素。正常情况下，从 `y=0` 到 `y=glowThickness`，RGB 分量应**平滑衰减**到背景色（例如红色光晕从 ~(84,42,42) 衰减到 ~(23,23,23)）。若边缘到中心 RGB 几乎不变（如全是 (255,83,83)），即为 premultiplied 退化。
+- **probe.log**：`overlay=Nx(skip=0)/Xms` 表示覆盖层正在活跃渲染；若 `overlay=0x` 持续，说明引擎未进入 `Working` 状态或覆盖层未被触发，与 alpha 问题无关。
+- **单元测试**：当前 `EdgeOverlayPixelRenderer` 无单元测试（纯像素逻辑，断言成本高）。若新增测试，断言应检查 `pixels[offset] * 255 ≈ r * pixels[offset+3]`（premultiplied 不变式）。
 
 ## 6. 设置持久化
 
@@ -222,5 +292,5 @@ UI 通过 `EngineSnapshot.PendingTransition` 拿到剩余秒数与消息键，�
 - **暂无单元测试**：当前没有测试项目。由于引擎与多数服务无 UI 依赖，已具备可测试性；计划新增 `ElasticBreath.Tests` 项目，优先覆盖 `BreathEngine` 状态机、`ExpressionEvaluator`、`SettingsStore` 表达式往返、`CornerTriggerService` 再触发门控。
 - **WinForms + WPF 混用**：`UseWindowsForms=true`，通过 `System.Windows.Forms` 使用 `NotifyIcon`（托盘）、`Screen`（多屏枚举）、`Cursor.Position`（光标定位）。两套 UI 栈并存带来少许心智负担，但避免了重写托盘与屏幕枚举的成本，短期保留。
 - **`RemoteInputFilterService` 仅匹配进程名**：通过前台窗口进程名匹配已知远程控制工具（ToDesk / RayLink / SunLogin / TeamViewer / AnyDesk / RustDesk），无法真正区分 RDP / VM 的输入来源是否来自宿主。即非完整意义上的“远程输入源过滤”，只是启发式抑制。
-- **顶部进度条宽度硬编码**：`EdgeOverlayWindow.DrawProgressBar` 中 `barWidth = 360`（像素）、`barHeight = 10`、`barY = 8` 为字面量，未随屏幕分辨率或 DPI 自适应。在高分辨率宽屏上偏窄，未来应改为按屏幕宽度比例计算。
+- **顶部进度条宽度硬编码**：`EdgeOverlayPixelRenderer.DrawProgressBar` 中 `barWidth = 360`（像素）、`barHeight = 10`、`barY = 8` 为字面量，未随屏幕分辨率或 DPI 自适应。在高分辨率宽屏上偏窄，未来应改为按屏幕宽度比例计算。
 - **设计书中尚未落地的设置项**：design.md §8 中的“推迟冷却时长”与“每日推迟上限”尚未在 `ElasticBreathSettings` 中实现，相关推迟配额逻辑也未进入引擎；本节如实标注以避免与设计书产生认知偏差。

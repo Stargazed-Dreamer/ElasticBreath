@@ -1,10 +1,10 @@
 <Window x:Class="ElasticBreath.App.UI.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Width="820"
-        Height="820"
-        MinWidth="780"
-        MinHeight="740"
+        Width="600"
+        Height="520"
+        MinWidth="600"
+        MinHeight="520"
         Background="#F6FAF8"
         Icon="/Resource/icon.ico"
         WindowStartupLocation="CenterOwner">
@@ -82,16 +82,6 @@
                             <TextBlock x:Name="CornerHoverSecondsLabel"/>
                             <TextBlock x:Name="CornerHoverSecondsError" Foreground="#FFC62929" FontSize="11" HorizontalAlignment="Right"/>
                             <TextBox x:Name="CornerHoverSecondsBox" Margin="0,4,0,0" TextChanged="AnyInputChanged"/>
-                        </StackPanel>
-                        <StackPanel Margin="0,0,10,10">
-                            <TextBlock x:Name="PostponeCooldownLabel"/>
-                            <TextBlock x:Name="PostponeCooldownError" Foreground="#FFC62929" FontSize="11" HorizontalAlignment="Right"/>
-                            <TextBox x:Name="PostponeCooldownBox" Margin="0,4,0,0" TextChanged="AnyInputChanged"/>
-                        </StackPanel>
-                        <StackPanel Margin="0,0,10,10">
-                            <TextBlock x:Name="DailyPostponeLimitLabel"/>
-                            <TextBlock x:Name="DailyPostponeLimitError" Foreground="#FFC62929" FontSize="11" HorizontalAlignment="Right"/>
-                            <TextBox x:Name="DailyPostponeLimitBox" Margin="0,4,0,0" TextChanged="AnyInputChanged"/>
                         </StackPanel>
                     </UniformGrid>
                 </GroupBox>

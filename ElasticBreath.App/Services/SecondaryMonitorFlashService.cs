@@ -1,5 +1,6 @@
-﻿using ElasticBreath.App.Domain;
+using ElasticBreath.App.Domain;
 using ElasticBreath.App.UI;
+using ElasticBreath.Rendering;
 using Forms = System.Windows.Forms;
 
 namespace ElasticBreath.App.Services;

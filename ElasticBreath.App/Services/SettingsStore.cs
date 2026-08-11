@@ -32,8 +32,6 @@ public sealed class SettingsStore
         { "smartDetectGapSeconds", "smartDetectGapSeconds" },
         { "autoTransitionCountdownSeconds", "autoTransitionCountdownSeconds" },
         { "cornerHoverSeconds", "cornerHoverSeconds" },
-        { "postponeCooldownSeconds", "postponeCooldownSeconds" },
-        { "dailyPostponeLimit", "dailyPostponeLimit" },
         { "glowMaxThicknessPixels", "glowMaxThicknessPixels" },
         { "overlayOpacity", "overlayOpacity" },
         { "reminderVolumePercent", "reminderVolumePercent" },

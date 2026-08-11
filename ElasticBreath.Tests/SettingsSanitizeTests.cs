@@ -17,8 +17,6 @@ public class SettingsSanitizeTests
         // AwayThreshold default (180) is below RestOvertime default (480), so Sanitize
         // clamps it up to RestOvertimeSeconds + 1 to satisfy the dependency rule.
         Assert.Equal(s.RestOvertimeSeconds + 1, s.AwayThresholdSeconds);
-        Assert.Equal(5 * 60, s.PostponeCooldownSeconds);
-        Assert.Equal(3, s.DailyPostponeLimit);
         Assert.Equal(1.5, s.CornerHoverSeconds);
         Assert.Equal("zh-CN", s.Language);
         Assert.Equal("auto", s.PreferredDisplay);
@@ -72,30 +70,6 @@ public class SettingsSanitizeTests
         s.Sanitize();
         Assert.True(s.AwayThresholdSeconds > s.RestOvertimeSeconds);
         Assert.Equal(s.RestOvertimeSeconds + 1, s.AwayThresholdSeconds);
-    }
-
-    [Fact]
-    public void Sanitize_PostponeCooldownClampedToRange()
-    {
-        var tooSmall = new ElasticBreathSettings { PostponeCooldownSeconds = 10 };
-        tooSmall.Sanitize();
-        Assert.Equal(ElasticBreathSettings.PostponeCooldownSecondsMin, tooSmall.PostponeCooldownSeconds);
-
-        var tooLarge = new ElasticBreathSettings { PostponeCooldownSeconds = 99999 };
-        tooLarge.Sanitize();
-        Assert.Equal(ElasticBreathSettings.PostponeCooldownSecondsMax, tooLarge.PostponeCooldownSeconds);
-    }
-
-    [Fact]
-    public void Sanitize_DailyPostponeLimitClampedToRange()
-    {
-        var tooSmall = new ElasticBreathSettings { DailyPostponeLimit = -1 };
-        tooSmall.Sanitize();
-        Assert.Equal(ElasticBreathSettings.DailyPostponeLimitMin, tooSmall.DailyPostponeLimit);
-
-        var tooLarge = new ElasticBreathSettings { DailyPostponeLimit = 999 };
-        tooLarge.Sanitize();
-        Assert.Equal(ElasticBreathSettings.DailyPostponeLimitMax, tooLarge.DailyPostponeLimit);
     }
 
     [Fact]

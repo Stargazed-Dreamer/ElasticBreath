@@ -1,10 +1,12 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
 using ElasticBreath.App.Domain;
 using ElasticBreath.App.Services;
 using ElasticBreath.App.UI;
+using ElasticBreath.Rendering;
 using Drawing = System.Drawing;
 using MediaColor = System.Windows.Media.Color;
 using Forms = System.Windows.Forms;
@@ -25,8 +27,8 @@ public partial class MainWindow : Window
     private readonly SecondaryMonitorFlashService _secondaryFlashService;
     private readonly SessionMonitor _sessionMonitor;
     private readonly EdgeOverlayWindow _overlayWindow;
-    private readonly CountdownNotificationWindow _notificationWindow;
     private readonly ToastWindow _toastWindow;
+    private readonly CornerIndicatorWindow _cornerIndicator;
     private readonly System.Windows.Threading.DispatcherTimer _cornerPollTimer;
 
     private Forms.NotifyIcon? _trayIcon;
@@ -61,10 +63,10 @@ public partial class MainWindow : Window
         _sessionMonitor = new SessionMonitor();
         // 初始化屏幕边缘覆盖层窗口
         _overlayWindow = new EdgeOverlayWindow();
-        // 初始化倒计时通知窗口
-        _notificationWindow = new CountdownNotificationWindow();
         // 初始化提示消息窗口
         _toastWindow = new ToastWindow();
+        // 初始化左上角角落触发的视觉指示圆
+        _cornerIndicator = new CornerIndicatorWindow();
         // 初始化屏幕角落轮询定时器，每250毫秒检查一次鼠标位置
         _cornerPollTimer = new System.Windows.Threading.DispatcherTimer
         {
@@ -73,8 +75,6 @@ public partial class MainWindow : Window
 
         // 订阅引擎状态快照更新事件
         _engine.SnapshotChanged += OnSnapshotChanged;
-        // 订阅通知窗口的取消请求事件，用于中止待处理的转换操作
-        _notificationWindow.CancelRequested += (_, _) => _engine.CancelPendingTransition();
         // 订阅角落轮询定时器的触发事件
         _cornerPollTimer.Tick += OnCornerPollTimerTick;
         // 订阅会话锁定状态变更事件，并通知引擎处理会话切换
@@ -105,6 +105,30 @@ public partial class MainWindow : Window
         RenderSnapshot(_engine.Snapshot);
         // 根据引擎快照更新覆盖层和通知信息
         UpdateOverlayAndNotifications(_engine.Snapshot);
+
+        // 崩溃恢复：扫描上次未处理的崩溃日志，若有则弹出提示窗口
+        ShowCrashRecoveryIfNeeded();
+    }
+
+    /// <summary>
+    /// 扫描崩溃日志目录，若存在未处理的崩溃记录则弹出 <see cref="CrashRecoveryWindow"/>。
+    /// 设计参考：design.md §7（"下次启动提示"）。
+    /// </summary>
+    private void ShowCrashRecoveryIfNeeded()
+    {
+        try
+        {
+            var entries = CrashRecoveryService.ListPendingCrashes();
+            if (entries.Count == 0)
+                return;
+            var window = new CrashRecoveryWindow(_localization, entries);
+            window.Owner = this;
+            window.Show();
+        }
+        catch
+        {
+            // 崩溃恢复提示本身失败不应影响主程序启动
+        }
     }
 
     /// <summary>
@@ -125,14 +149,9 @@ public partial class MainWindow : Window
             return;
         }
 
-        // 取消关闭操作，隐藏窗口，并显示托盘气泡提示
+        // 取消关闭操作，静默隐藏到托盘（不弹气泡通知）
         e.Cancel = true;
         Hide();
-        _trayIcon?.ShowBalloonTip(
-            1400,
-            _localization.T("tray.minimized_title"),
-            _localization.T("tray.minimized_body"),
-            Forms.ToolTipIcon.Info);
     }
 
     /// <summary>
@@ -147,10 +166,10 @@ public partial class MainWindow : Window
         _engine.Dispose();
         // 关闭覆盖窗口
         _overlayWindow.Close();
-        // 关闭通知窗口
-        _notificationWindow.Close();
         // 关闭提示窗口
         _toastWindow.Close();
+        // 关闭左上角指示圆窗口
+        _cornerIndicator.Close();
         // 释放二级闪烁服务资源
         _secondaryFlashService.Dispose();
         // 释放会话监控器资源
@@ -273,23 +292,17 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// 当角落轮询定时器触发时调用，处理角落悬停功能的检测和状态切换。
+    /// 当角落轮询定时器触发时调用，处理左上角悬停功能的检测、视觉指示与状态切换。
     /// </summary>
     /// <param name="sender">事件发送者。</param>
     /// <param name="e">事件参数。</param>
     private void OnCornerPollTimerTick(object? sender, EventArgs e)
     {
-        // 如果角落悬停功能未启用，则直接返回
-        if (!_settings.EnableCornerHover)
-        {
-            return;
-        }
-
-        // 获取引擎的当前快照
+        // 仅在启用角落悬停且处于可触发状态（工作/休息）时显示指示圆与检测触发
         var snapshot = _engine.Snapshot;
-        // 检查引擎状态是否为工作或休息状态，如果不是则返回
-        if (snapshot.State is not (ElasticBreathState.Working or ElasticBreathState.Resting))
+        if (!_settings.EnableCornerHover || snapshot.State is not (ElasticBreathState.Working or ElasticBreathState.Resting))
         {
+            _cornerIndicator.Retract();
             return;
         }
 
@@ -299,11 +312,25 @@ public partial class MainWindow : Window
         var bounds = new Rect(b.Left, b.Top, b.Width, b.Height);
         // 获取当前光标位置
         var cursor = Forms.Cursor.Position;
-        // 检查角落悬停触发条件是否满足
+
+        /* 更新左上角指示圆：进入左上角 → 弹性出现并随进度由灰变绿；离开 → 收回 */
+        var hover = _cornerTrigger.GetHoverProgress(_settings.CornerHoverDuration);
+        if (hover.Corner is not null)
+        {
+            _cornerIndicator.ShowAt(b.Left, b.Top, hover.Progress);
+        }
+        else
+        {
+            _cornerIndicator.Retract();
+        }
+
+        /* 检查左上角悬停触发条件是否满足 */
         if (_cornerTrigger.TryTrigger(bounds, new System.Windows.Point(cursor.X, cursor.Y), _settings.CornerHoverDuration))
         {
             // 触发角落状态转换
             var state = _engine.TriggerCornerTransition();
+            // 切换完成：指示圆保持全绿，直到鼠标移出左上角
+            _cornerIndicator.ShowAt(b.Left, b.Top, 1.0);
             // 显示状态切换的消息通知
             _toastWindow.ShowMessage(
                 _localization.Tf("notify.corner_switched", ResolveStateText(state)),
@@ -325,10 +352,10 @@ public partial class MainWindow : Window
 
         StartWorkButton.Content = _localization.T("button.start_work");
         StartRestButton.Content = _localization.T("button.start_rest");
-        PostponeButton.Content = _localization.T("button.postpone");
         StopButton.Content = _localization.T("button.stop_idle");
         OpenSettingsButton.Content = _localization.T("button.open_settings");
         OpenHelpButton.Content = _localization.T("button.open_help");
+        OpenAboutButton.Content = _localization.T("button.open_about");
         RebuildTrayMenu();
 
         /* 重新渲染以更新动态按钮文本 */
@@ -341,6 +368,7 @@ public partial class MainWindow : Window
     /// <param name="snapshot">引擎快照对象，包含当前状态、计时器、待处理事件等数据。</param>
     private void RenderSnapshot(EngineSnapshot snapshot)
     {
+        var sw = Stopwatch.StartNew();
         // 解析状态文本并设置到UI元素
         var stateText = ResolveStateText(snapshot.State);
         StateText.Text = _localization.Tf("state.prefix", stateText);
@@ -352,20 +380,6 @@ public partial class MainWindow : Window
         PauseRemindersButton.Content = snapshot.RemindersPaused
             ? _localization.T("button.resume_reminders")
             : _localization.T("button.pause_reminders");
-
-        /* 推迟按钮：仅在 Working 且压力为 Warning/Hard、未冷却、配额未用完时启用，
-           按钮文本附带剩余次数；冷却中显示剩余冷却时间 */
-        var postpone = snapshot.Postpone;
-        PostponeButton.IsEnabled = postpone.CanPostpone;
-        if (postpone.CooldownRemaining > TimeSpan.Zero)
-        {
-            PostponeButton.Content = _localization.Tf("button.postpone_cooldown", (int)Math.Ceiling(postpone.CooldownRemaining.TotalSeconds));
-        }
-        else
-        {
-            PostponeButton.Content = _localization.Tf("button.postpone_count", postpone.PostponesRemainingToday, postpone.DailyLimit);
-        }
-        PostponeButton.ToolTip = _localization.Tf("tooltip.postpone", postpone.PostponesUsedToday, postpone.DailyLimit);
 
         /* 根据当前状态动态切换按钮文本：
            - 工作中 → "暂停"，休息中 → "暂停"
@@ -441,6 +455,7 @@ public partial class MainWindow : Window
         // 更新进度弧的颜色和几何形状
         ProgressArc.Stroke = new SolidColorBrush(ResolveProgressColor(snapshot));
         ProgressArc.Data = BuildArcGeometry(new System.Windows.Point(140, 140), 106, progress);
+        RenderProbe.OnSnapshotRender(sw.ElapsedTicks);
     }
 
     /// <summary>
@@ -459,8 +474,6 @@ public partial class MainWindow : Window
         _overlayWindow.SetBounds(targetScreen.Bounds);
         // 根据设置配置覆盖窗口的定期置顶行为
         _overlayWindow.ConfigureReTopmost(_settings.EnablePeriodicReTopmost, _settings.ReTopmostIntervalSeconds);
-        // 将通知窗口定位到目标屏幕的右上角
-        _notificationWindow.PositionAtTopRight(targetScreen.Bounds);
 
         // 判断是否因全屏应用而需隐藏覆盖窗口（根据设置和当前前台全屏状态）
         var hideForFullscreen = _settings.FullscreenHideMode && _displayTargetService.IsFullscreenForeground(targetScreen, _mainWindowHandle);
@@ -491,26 +504,6 @@ public partial class MainWindow : Window
             overlayState, // 覆盖状态
             hideForFullscreen || !_settings.EnableEdgeGlow, // 满足隐藏条件或未启用边缘发光时禁用闪光
             !_displayTargetService.IsCursorOnScreen(targetScreen)); // 判断鼠标光标是否不在目标屏幕上
-
-        // 处理待处理的状态转换通知
-        if (snapshot.PendingTransition is null)
-        {
-            // 无待处理转换时，隐藏通知窗口
-            _notificationWindow.Hide();
-        }
-        else
-        {
-            // 有待处理转换时，准备通知消息
-            // 根据转换消息键和设置的倒计时秒数，获取本地化消息
-            var message = _localization.Tf(snapshot.PendingTransition.MessageKey, _settings.AutoTransitionCountdownSeconds);
-            // 更新通知窗口的消息内容、操作提示和剩余时间
-            _notificationWindow.UpdateMessage(message, _localization.T("notify.auto_action"), snapshot.PendingTransition.Remaining);
-            // 如果通知窗口当前不可见，则显示它
-            if (!_notificationWindow.IsVisible)
-            {
-                _notificationWindow.Show();
-            }
-        }
     }
 
     /// <summary>
@@ -828,21 +821,6 @@ public partial class MainWindow : Window
     private void StopButton_Click(object sender, RoutedEventArgs e) => _engine.StopToIdle();
 
     /// <summary>
-    /// 处理推迟按钮点击事件：在预警/硬性区推迟当前工作提醒，进入冷却期。
-    /// </summary>
-    private void PostponeButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (_engine.TryPostpone())
-        {
-            var screen = _displayTargetService.GetTargetScreen(_settings.PreferredDisplay);
-            var b = screen.Bounds;
-            _toastWindow.ShowMessage(
-                _localization.T("notify.postponed"),
-                new Rect(b.Left, b.Top, b.Width, b.Height));
-        }
-    }
-
-    /// <summary>
     /// 处理暂停提醒按钮点击事件，切换提醒的暂停状态。
     /// </summary>
     private void PauseRemindersButton_Click(object sender, RoutedEventArgs e) => _engine.SetRemindersPaused(!_engine.Snapshot.RemindersPaused); // 取反当前暂停状态以切换
@@ -889,6 +867,16 @@ public partial class MainWindow : Window
         // 创建帮助窗口实例，设置本地化参数和所有者为当前窗口
         var dialog = new HelpWindow(_localization) { Owner = this };
         // 显示帮助窗口对话框
+        _ = dialog.ShowDialog();
+    }
+
+    /// <summary>
+    /// 关于按钮点击事件：打开关于窗口，展示版本、作者、仓库链接、许可证与简介。
+    /// 所有元数据在窗口构造时从 <c>app.meta.json</c> 实时读取。
+    /// </summary>
+    private void OpenAboutButton_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new AboutWindow(_localization, new AppMetaService()) { Owner = this };
         _ = dialog.ShowDialog();
     }
 }

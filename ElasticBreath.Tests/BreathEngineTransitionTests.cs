@@ -98,34 +98,45 @@ public class BreathEngineTransitionTests : IDisposable
     }
 
     [Fact]
-    public void TryPostpone_ReturnsFalse_WhenIdle()
-    {
-        Assert.False(_engine.TryPostpone());
-    }
-
-    [Fact]
-    public void TryPostpone_ReturnsFalse_WhenWorkingSafe()
-    {
-        _engine.StartWorkingManual();
-        // Without OnTick advancing the working cycle, pressure stays Safe.
-        Assert.Equal(WorkingPressureLevel.Safe, _engine.Snapshot.WorkingPressure);
-        Assert.False(_engine.TryPostpone());
-    }
-
-    [Fact]
-    public void SetRemindersPaused_True_TransitionsToIdleAndSetsFlag()
+    public void SetRemindersPaused_True_TransitionsToPaused_AndRemembersStateBeforePause()
     {
         _engine.StartWorkingManual();
         _engine.SetRemindersPaused(true);
-        Assert.Equal(ElasticBreathState.Idle, _engine.Snapshot.State);
+        Assert.Equal(ElasticBreathState.Paused, _engine.Snapshot.State);
+        Assert.Equal(ElasticBreathState.Working, _engine.Snapshot.StateBeforePause);
         Assert.True(_engine.Snapshot.RemindersPaused);
     }
 
     [Fact]
-    public void Snapshot_Postpone_IsNonNullWithExpectedDailyLimit()
+    public void SetRemindersPaused_False_ResumesToStateBeforePause()
     {
-        Assert.NotNull(_engine.Snapshot.Postpone);
-        Assert.Equal(_settings.DailyPostponeLimit, _engine.Snapshot.Postpone.DailyLimit);
+        _engine.StartWorkingManual();
+        _engine.SetRemindersPaused(true);
+        _engine.SetRemindersPaused(false);
+        Assert.Equal(ElasticBreathState.Working, _engine.Snapshot.State);
+        Assert.False(_engine.Snapshot.RemindersPaused);
+    }
+
+    [Fact]
+    public void SetRemindersPaused_FromResting_ResumesToResting()
+    {
+        _engine.StartWorkingManual();
+        _engine.StartRestingManual();
+        _engine.SetRemindersPaused(true);
+        Assert.Equal(ElasticBreathState.Paused, _engine.Snapshot.State);
+        Assert.Equal(ElasticBreathState.Resting, _engine.Snapshot.StateBeforePause);
+        _engine.SetRemindersPaused(false);
+        Assert.Equal(ElasticBreathState.Resting, _engine.Snapshot.State);
+    }
+
+    [Fact]
+    public void SetRemindersPaused_FromIdle_StaysPausedAndResumesToIdle()
+    {
+        _engine.SetRemindersPaused(true);
+        Assert.Equal(ElasticBreathState.Paused, _engine.Snapshot.State);
+        Assert.Equal(ElasticBreathState.Idle, _engine.Snapshot.StateBeforePause);
+        _engine.SetRemindersPaused(false);
+        Assert.Equal(ElasticBreathState.Idle, _engine.Snapshot.State);
     }
 
     [Fact]
