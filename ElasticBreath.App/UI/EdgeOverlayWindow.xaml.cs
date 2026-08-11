@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
@@ -214,7 +213,6 @@ public partial class EdgeOverlayWindow : Window
         if (_hwnd == IntPtr.Zero || !IsVisible)
             return;
 
-        var sw = Stopwatch.StartNew();
         // 解析视觉参数，如基础颜色、透明度因子、动画周期等
         var visual = EdgeOverlayPixelRenderer.ResolveVisual(_state);
 
@@ -230,7 +228,6 @@ public partial class EdgeOverlayWindow : Window
 // 检查是否需要更新渲染：如果位图未脏且颜色与上次相同，则直接返回
         if (!_bitmapDirty && finalAlpha == _lastA && visual.R == _lastR && visual.G == _lastG && visual.B == _lastB)
         {
-            RenderProbe.OnOverlayFrame(true, sw.ElapsedTicks);
             return;
         }
 
@@ -261,7 +258,6 @@ public partial class EdgeOverlayWindow : Window
 
         /* 提交到 Layered Window */
         Win32Native.RenderLayeredWindow(_hwnd, _hBitmap, _pixels, _bitmapWidth, _bitmapHeight);
-        RenderProbe.OnOverlayFrame(false, sw.ElapsedTicks);
     }
 
     /// <summary>确保 DIB Section 位图尺寸与屏幕匹配</summary>

@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -368,7 +367,6 @@ public partial class MainWindow : Window
     /// <param name="snapshot">引擎快照对象，包含当前状态、计时器、待处理事件等数据。</param>
     private void RenderSnapshot(EngineSnapshot snapshot)
     {
-        var sw = Stopwatch.StartNew();
         // 解析状态文本并设置到UI元素
         var stateText = ResolveStateText(snapshot.State);
         StateText.Text = _localization.Tf("state.prefix", stateText);
@@ -455,7 +453,6 @@ public partial class MainWindow : Window
         // 更新进度弧的颜色和几何形状
         ProgressArc.Stroke = new SolidColorBrush(ResolveProgressColor(snapshot));
         ProgressArc.Data = BuildArcGeometry(new System.Windows.Point(140, 140), 106, progress);
-        RenderProbe.OnSnapshotRender(sw.ElapsedTicks);
     }
 
     /// <summary>
