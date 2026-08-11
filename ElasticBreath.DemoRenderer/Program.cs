@@ -18,9 +18,11 @@ namespace ElasticBreath.DemoRenderer;
 /// </summary>
 internal static class Program
 {
-    private const int Width = 1920;
-    private const int Height = 1080;
-    private const int DefaultGlowThickness = 80;
+    // 演示图尺寸：960x540（1920x1080 的 1/4 面积）。纯色合成壁纸无需原始大尺寸演示，
+    // 缩小后 README 加载更快、仓库体积更小，且光晕视觉比例与实机一致（thickness 同步减半）。
+    private const int Width = 960;
+    private const int Height = 540;
+    private const int DefaultGlowThickness = 40;
     private const double BaseOpacity = 0.3;
 
     private static void Main(string[] args)
@@ -232,7 +234,7 @@ internal static class Program
         参数:
           --bg, --background <路径>   自定义背景图（jpg/png/bmp 等）。未指定时用合成渐变壁纸。
           --out, --output <目录>      输出目录。默认 docs/screenshots/。
-          --thickness, --thick <像素> 光晕渐变厚度（像素），默认 80。可用于复现实机厚度。
+          --thickness, --thick <像素> 光晕渐变厚度（像素），默认 40。960x540 下与实机视觉比例一致。
           -h, --help                  显示本帮助。
 
         示例:
@@ -245,11 +247,11 @@ internal static class Program
           # 指定输出目录
           dotnet run --project ElasticBreath.DemoRenderer -c Release -- --bg bg.jpg --out D:\out
 
-          # 复现实机厚度（实机 base = glowMaxThicknessPixels / 3）
-          dotnet run --project ElasticBreath.DemoRenderer -c Release -- --thickness 40
+          # 复现 1920x1080 实机厚度（演示图默认 40 是按 960x540 比例减半）
+          dotnet run --project ElasticBreath.DemoRenderer -c Release -- --thickness 80
 
         输出:
-          state-<状态><后缀>.png          6 种状态截图（1920x1080）
+          state-<状态><后缀>.png          6 种状态截图（960x540）
           top-progress-grid<后缀>.png     顶部进度条五联对比
           pulse-warning<后缀>.gif         Warning 脉冲动画（960x540, 15帧）
           后缀: 默认无；自定义背景时为 --<图片basename>
@@ -324,9 +326,9 @@ internal static class Program
     private static void GenerateTopProgressGrid(string outDir, byte[] bgBytes, string suffix, int thickness)
     {
         var ratios = new[] { 0.0, 0.25, 0.5, 0.75, 1.0 };
-        var panelHeight = 120;       // 只截顶部一段，足以呈现进度条与上边缘光晕
-        var gap = 24;
-        var labelHeight = 36;
+        var panelHeight = 60;        // 只截顶部一段，足以呈现进度条与上边缘光晕（按 960x540 比例缩放）
+        var gap = 12;
+        var labelHeight = 18;
         var totalHeight = ratios.Length * panelHeight + (ratios.Length - 1) * gap + labelHeight * ratios.Length;
         var grid = new Bitmap(Width, totalHeight, PixelFormat.Format32bppArgb);
 
@@ -334,7 +336,7 @@ internal static class Program
         {
             g.Clear(Color.FromArgb(20, 20, 28));
 
-            using var font = new Font("Segoe UI", 18, FontStyle.Regular, GraphicsUnit.Pixel);
+            using var font = new Font("Segoe UI", 12, FontStyle.Regular, GraphicsUnit.Pixel);
             var labelBrush = new SolidBrush(Color.FromArgb(220, 220, 230));
             var labelFormat = new StringFormat
             {
@@ -384,9 +386,7 @@ internal static class Program
         var period = visual.PulsePeriod > 0 ? visual.PulsePeriod : 3.0;
         var frameCount = 15;             // 一个周期 15 帧（4fps），平衡流畅度与体积
         var frameDelayCentiseconds = 20; // 每帧 200ms → 总时长 3s = 一个周期
-        const int gifWidth = 960;        // GIF 半分辨率，控制文件体积（PNG 仍为 1920）
-        const int gifHeight = 540;
-
+        // 主尺寸已为 960x540，GIF 直接用同尺寸，无需再缩小
         var frames = new List<Bitmap>(frameCount);
         for (var i = 0; i < frameCount; i++)
         {
@@ -395,20 +395,19 @@ internal static class Program
                 visual.AlphaFactor, visual.PulsePeriod, visual.Blink, elapsed);
             var alpha = (byte)Math.Clamp(BaseOpacity * factor * 255, 0, 255);
             using var full = RenderCompositedFrame(bgBytes, visual.R, visual.G, visual.B, alpha, showTopProgress: false, topProgressRatio: 0, thickness);
-            // 缩小到半分辨率，GIF 体积可降为约 1/4
-            var small = new Bitmap(gifWidth, gifHeight, PixelFormat.Format32bppArgb);
-            using (var g = Graphics.FromImage(small))
+            // 复制一份作为 GIF 帧（RenderCompositedFrame 返回的 Bitmap 后续会被 Dispose）
+            var frame = new Bitmap(Width, Height, PixelFormat.Format32bppArgb);
+            using (var g = Graphics.FromImage(frame))
             {
-                g.InterpolationMode = InterpolationMode.HighQualityBicubic;
-                g.DrawImage(full, 0, 0, gifWidth, gifHeight);
+                g.DrawImage(full, 0, 0, Width, Height);
             }
-            frames.Add(small);
+            frames.Add(frame);
         }
 
         var path = Path.Combine(outDir, $"pulse-warning{suffix}.gif");
         SaveAnimatedGif(path, frames, frameDelayCentiseconds);
         foreach (var f in frames) f.Dispose();
-        Console.WriteLine($"  -> {Path.GetFileName(path)}  ({frameCount} frames, {period:F1}s period, {gifWidth}x{gifHeight})");
+        Console.WriteLine($"  -> {Path.GetFileName(path)}  ({frameCount} frames, {period:F1}s period, {Width}x{Height})");
     }
 
     // ----------------------------------------------------------------

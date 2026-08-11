@@ -60,3 +60,10 @@ PUBLISH-ALIGNMENT-DRAFT.md
 
 ## 自定义背景生成的后缀截图（对比用，不入库）
 docs/screenshots/*--*
+
+## DemoRenderer 生成但 README 不再引用的图（工具仍会生成，仅不入库）
+docs/screenshots/pulse-warning.gif
+docs/screenshots/state-rest-elastic.png
+docs/screenshots/state-rest-overtime.png
+docs/screenshots/state-paused.png
+docs/screenshots/top-progress-grid.png
