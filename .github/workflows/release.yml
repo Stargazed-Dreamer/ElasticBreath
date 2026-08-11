@@ -17,7 +17,8 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 8.0.0
+          # 用 8.0.x 跟踪最新 8.0 补丁版本；固定 8.0.0 会因该 SDK 已下架导致 404
+          dotnet-version: 8.0.x
 
       - name: Publish portable
         run: dotnet publish ElasticBreath.App/ElasticBreath.App.csproj -c Release -p:PublishProfile=Portable -o ./publish
