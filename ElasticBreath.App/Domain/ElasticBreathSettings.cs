@@ -88,8 +88,8 @@ public sealed class ElasticBreathSettings
     public bool EnableEdgeGlow { get; set; } = true;
     // 是否启用角落悬停功能，默认为true
     public bool EnableCornerHover { get; set; } = true;
-    // 发光最大厚度像素，默认80像素
-    public int GlowMaxThicknessPixels { get; set; } = 80;
+    // 发光最大厚度像素，默认160像素
+    public int GlowMaxThicknessPixels { get; set; } = 160;
     // 覆盖层不透明度，默认0.35
     public double OverlayOpacity { get; set; } = 0.35;
     // 全屏隐藏模式

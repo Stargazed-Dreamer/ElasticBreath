@@ -19,10 +19,10 @@ namespace ElasticBreath.DemoRenderer;
 internal static class Program
 {
     // 演示图尺寸：960x540（1920x1080 的 1/4 面积）。纯色合成壁纸无需原始大尺寸演示，
-    // 缩小后 README 加载更快、仓库体积更小，且光晕视觉比例与实机一致（thickness 同步减半）。
+    // 缩小后 README 加载更快、仓库体积更小。thickness 为实机默认（160）的一半，保持视觉比例。
     private const int Width = 960;
     private const int Height = 540;
-    private const int DefaultGlowThickness = 40;
+    private const int DefaultGlowThickness = 80;
     private const double BaseOpacity = 0.3;
 
     private static void Main(string[] args)
@@ -234,7 +234,7 @@ internal static class Program
         参数:
           --bg, --background <路径>   自定义背景图（jpg/png/bmp 等）。未指定时用合成渐变壁纸。
           --out, --output <目录>      输出目录。默认 docs/screenshots/。
-          --thickness, --thick <像素> 光晕渐变厚度（像素），默认 40。960x540 下与实机视觉比例一致。
+          --thickness, --thick <像素> 光晕渐变厚度（像素），默认 80。960x540 下为实机默认（160）的一半。
           -h, --help                  显示本帮助。
 
         示例:
@@ -247,8 +247,8 @@ internal static class Program
           # 指定输出目录
           dotnet run --project ElasticBreath.DemoRenderer -c Release -- --bg bg.jpg --out D:\out
 
-          # 复现 1920x1080 实机厚度（演示图默认 40 是按 960x540 比例减半）
-          dotnet run --project ElasticBreath.DemoRenderer -c Release -- --thickness 80
+          # 复现 1920x1080 实机厚度（演示图默认 80 是按 960x540 比例减半）
+          dotnet run --project ElasticBreath.DemoRenderer -c Release -- --thickness 160
 
         输出:
           state-<状态><后缀>.png          6 种状态截图（960x540）

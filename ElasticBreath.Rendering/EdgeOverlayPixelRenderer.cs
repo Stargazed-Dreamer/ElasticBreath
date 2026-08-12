@@ -17,7 +17,7 @@ public enum EdgeOverlayState
     RestElastic,
     // 休息超时状态（亮绿 + 闪烁）
     RestOvertime,
-    // 暂停状态（灰色）
+    // 暂停状态（无视觉，等同隐藏：灰色边框反而显得突兀，不如不画）
     Paused
 }
 
@@ -55,7 +55,7 @@ public static class EdgeOverlayPixelRenderer
             EdgeOverlayState.RestBase => new EdgeOverlayVisual(67, 183, 108, 1.0, 3.0, false),
             EdgeOverlayState.RestElastic => new EdgeOverlayVisual(47, 206, 103, 1.1, 1.8, false),
             EdgeOverlayState.RestOvertime => new EdgeOverlayVisual(47, 206, 103, 1.1, 1.0, true),
-            EdgeOverlayState.Paused => new EdgeOverlayVisual(102, 102, 102, 0.75, 0.0, false),
+            EdgeOverlayState.Paused => default, // 暂停态不绘制边框，与 Hidden 一致
             _ => default
         };
     }
