@@ -21,7 +21,7 @@ ElasticBreath 是一个 Windows WPF（.NET 8）单进程应用，采用经典的
 │  │   │    └─ RemoteInputFilterService (前台进程名匹配远程工具)     │    │
 │  │   ├─ CornerTriggerService (左上角悬停 1.5s + 再触发门控)         │    │
 │  │   ├─ DisplayTargetService   (preferred→primary→cursor 回退)     │    │
-│  │   ├─ SecondaryMonitorFlashService (副屏 EdgeOverlayWindow 闪烁) │    │
+│  │   ├─ SecondaryMonitorFlashService (鼠标所在副屏呼吸边框)      │    │
 │  │   ├─ SessionMonitor   (Microsoft.Win32.SystemEvents.SessionSwitch)│   │
 │  │   ├─ SettingsStore     (JSON + 算术表达式往返)                  │    │
 │  │   ├─ ExpressionEvaluator(递归下降 + - * / ( ))                   │    │
@@ -65,7 +65,7 @@ ElasticBreath 是一个 Windows WPF（.NET 8）单进程应用，采用经典的
 | `InputMonitor.cs` | 调用 `Win32Native.GetIdleDuration` 采样系统空闲时长，并跟踪 `DenseInputDuration`（密集输入持续时长，用于 `RestToWork` 判定）。注入 `RemoteInputFilterService` 以在远程工具前台时抑制误判。返回 `InputSample`。 |
 | `CornerTriggerService.cs` | 左上角悬停检测。`CornerHitSize = 18` 像素判定区（仅左上角）；`TryTrigger` 返回是否达成 `hoverDuration`；`_mustExitCornerBeforeNextTrigger` 门控确保触发后必须先离开左上角区域才允许下一次触发，防止连发；`GetHoverProgress` 输出悬停进度供指示圆视觉使用，触发后保持 `1.0` 使圆保持绿色直到鼠标移开。 |
 | `DisplayTargetService.cs` | 选定目标屏幕：首选显示器（按 `DeviceName` 匹配）→ 主屏 → 光标所在屏。`IsFullscreenForeground` 通过 `GetForegroundWindow` + `GetWindowRect` 与目标屏边界（容差 2px）比较，判定是否被全屏应用覆盖。 |
-| `SecondaryMonitorFlashService.cs` | 多屏增强。为每个非主屏 `Screen` 懒创建一个 `EdgeOverlayWindow`，当主屏浮层被忽略（`primaryScreenIgnored`）时以 700ms 周期闪烁副屏边框；实现 `IDisposable` 统一释放。 |
+| `SecondaryMonitorFlashService.cs` | 多屏增强。为每个非主屏 `Screen` 懒创建一个 `EdgeOverlayWindow`，当鼠标不在主控屏时，在鼠标实际所在的副屏上显示与主浮层一致的呼吸边框（物理像素定位，依赖 PerMonitorV2）；`ResolveVisibleState` 为可测纯决策；实现 `IDisposable` 统一释放。 |
 | `SessionMonitor.cs` | 包装 `Microsoft.Win32.SystemEvents.SessionSwitch`，通过 `SessionLockChanged` 事件向引擎报告锁屏/解锁。 |
 | `SettingsStore.cs` | 配置持久化。`Load`/`Save` 读写 exe 同级 `config/settings.json`；加载时把字符串型算术表达式求值后替换回 JSON 节点以便反序列化，同时把原文保留到 `RawExpressions`；保存时反向把 `RawExpressions` 写回对应字段，保持文件人类可读。 |
 | `ExpressionEvaluator.cs` | 递归下降解析器，支持 `+ - * / ( )` 与一元正负号、整数/小数；`TryEvaluate` 返回 `double` 与错误标识（`empty`/`invalid_char`/`nan_or_inf`/`divide_zero`/`syntax`）。 |
@@ -88,7 +88,7 @@ ElasticBreath 是一个 Windows WPF（.NET 8）单进程应用，采用经典的
 
 | 文件 | 职责 |
 | :--- | :--- |
-| `Win32Native.cs` | 唯一的 P/Invoke 表面。输入：`GetLastInputInfo`/`GetCursorPos`/`GetForegroundWindow`/`GetWindowRect`/`GetWindowThreadProcessId`；窗口样式与定位：`GetWindowLongPtr`/`SetWindowLongPtr`/`SetWindowPos`/`ForceTopmost`/`SetClickThroughNoActivate`/`SetLayered`/`SetWindowBoundsPixels`；Layered Window 渲染：`CreateDIBSection`(`CreateArgbBitmap`)/`UpdateLayeredWindow`(`RenderLayeredWindow`)/GDI 对象销毁。 |
+| `Win32Native.cs` | 唯一的 P/Invoke 表面。输入：`GetLastInputInfo`/`GetCursorPos`/`GetForegroundWindow`/`GetWindowRect`/`GetWindowThreadProcessId`；显示器 DPI 查询：`MonitorFromPoint`/`GetDpiForMonitor`（物理像素与 WPF DIP 换算）；窗口样式与定位：`GetWindowLongPtr`/`SetWindowLongPtr`/`SetWindowPos`/`ForceTopmost`/`SetClickThroughNoActivate`/`SetLayered`/`SetWindowBoundsPixels`；Layered Window 渲染：`CreateDIBSection`(`CreateArgbBitmap`)/`UpdateLayeredWindow`(`RenderLayeredWindow`)/GDI 对象销毁。 |
 
 <a id="2.5-elasticbreathrendering纯渲染逻辑无平台依赖"></a>
 
@@ -257,9 +257,11 @@ background[i] = (byte)Math.Min(255, overlay[i] + (background[i] * inv) / 255);
 
 **全屏检测**：`IsFullscreenForeground` 比较前台窗口矩形与目标屏边界（容差 2 像素），命中则触发“全屏隐藏”或任务栏闪烁回退（见 design.md §7）。
 
-**副屏闪烁**：`SecondaryMonitorFlashService` 为每个非主屏懒创建独立的 `EdgeOverlayWindow`，在主屏浮层被忽略（`primaryScreenIgnored`）时以 700ms 周期切换显隐，制造“副屏边框呼吸”效果，光晕厚度默认取 `GlowMaxThicknessPixels / 3`（夹紧到 8–36）。
+**副屏呼吸**：`SecondaryMonitorFlashService` 为每个非主屏懒创建独立的 `EdgeOverlayWindow`，当鼠标不在主控屏时，仅在鼠标实际所在的副屏显示与主浮层一致的呼吸状态（厚度同 `ResolveGlowThickness`），形成"主控屏 + 鼠标所在屏"双屏呼吸。是否显示由纯函数 `ResolveVisibleState` 决策（xUnit 覆盖）。
 
-**热插拔**：`Screen.AllScreens` 在每次更新时实时枚举，因此插拔显示器会自动适配；多变单时副屏窗口会被显式 `hideAll` 隐藏，无残留闪烁。
+**热插拔**：`Screen.AllScreens` 在每次更新时实时枚举，因此插拔显示器会自动适配；多变单时副屏窗口会被显式隐藏，已移除显示器对应的残留窗口会被关闭，无残留闪烁。
+
+**多屏 DPI**：应用通过 `app.manifest` 声明 `PerMonitorV2`。异 DPI 多屏下 `Screen.Bounds`、`SetWindowPos` 与 `UpdateLayeredWindow` 位图均使用物理像素，保证副屏呼吸窗口精确全屏覆盖对应显示器（历史上无 manifest 时进程为 SystemAware，`Screen.Bounds` 被 DPI 虚拟化，副屏窗口会错位到主屏侧边并残留一块闪烁边框——1.0 前多屏 bug 的根因）。WPF 定位的窗口（`ToastWindow` / `CornerIndicatorWindow`）通过 `Win32Native.GetDpiScaleForScreen` 把物理像素换算为 DIP 后再设置 `Left`/`Top`。
 
 ## 9. 异常与崩溃保护
 

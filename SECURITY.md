@@ -27,6 +27,7 @@
 
 - **`GetLastInputInfo`**：用于空闲检测，仅读取系统最后一次输入的时间戳，**不记录**任何按键内容或鼠标操作内容。
 - **`GetForegroundWindow` / `GetWindowThreadProcessId`**：用于检测当前前台窗口所属进程，以便在远程控制工具（如向日葵、ToDesk、TeamViewer 等）处于活动状态时过滤其输入，避免误判远程会话为本地活动。仅读取进程标识，**不读取**窗口内容或进程内存。
+- **`MonitorFromPoint` / `GetDpiForMonitor`**：用于查询显示器 DPI 缩放系数，将屏幕物理像素坐标换算为 WPF 设备无关单位，保证多屏异 DPI 下副屏呼吸边框与通知窗口精确定位。仅读取显示器 DPI 数值，**不读取**任何用户数据。
 
 应用**不会**进行以下操作：
 

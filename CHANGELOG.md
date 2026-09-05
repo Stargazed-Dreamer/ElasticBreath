@@ -28,11 +28,11 @@
 
 - 抽取边缘覆盖层像素渲染逻辑到独立项目 `ElasticBreath.Rendering`(`EdgeOverlayPixelRenderer`):主应用 Layered Window 与离线截图工具共用同一份渲染代码,保证实机与截图像素级一致;`EdgeOverlayWindow.xaml.cs` 改为委托调用,删除原内联的 `FillPixels`/`DrawProgressBar`/`BlendPixel`/`ResolveVisual`。
 - 暂停态移除灰色边缘光晕:`EdgeOverlayPixelRenderer.ResolveVisual` 对 `Paused` 状态改为返回 `default`(等同 `Hidden`),不再绘制灰色边框。灰色弱视觉反而显得突兀,暂停时保持无视觉干扰更自然。同步更新 design.md / USER_GUIDE.md 中暂停态视觉描述。
-- 默认最大边缘光晕厚度 80px → 160px:`ElasticBreathSettings.GlowMaxThicknessPixels` 默认值翻倍,让强提醒(工作硬性 / 休息超时)的视觉冲击更明显。Sanitize 范围(12~600)不变。同步更新 design.md / USER_GUIDE.md 中默认值描述,DemoRenderer 演示图默认 thickness 同步从 40 调整为 80(保持实机一半比例)。
+- 多屏行为改为"双屏同步呼吸":副屏提示不再以 700ms 硬切频闪,`SecondaryMonitorFlashService` 改为当鼠标不在主控屏时,仅在鼠标实际所在的副屏显示与主浮层一致的呼吸边框(覆盖状态与光晕厚度 `ResolveGlowThickness` 均同步);设置项 `settings.secondary_flash` 文案改为"副屏同步呼吸提醒";新增纯决策函数 `ResolveVisibleState` 并补充 xUnit 用例。同步更新 design.md §5.5/§8.3,USER_GUIDE.md §8/§9.4,ARCHITECTURE.md §2.2/§2.4/§8,i18n zh-CN/en-US 的 `settings.secondary_flash` 与 help.body 多屏段落。
 
 ### Fixed
 
-- 修复 `Interop/Win32Native.cs` 中重复 `DllImport` 声明导致的构建中断。
+- 修复多屏异 DPI 下副屏呼吸边框错位到主屏侧边的 bug:应用此前未声明 DPI 感知清单,进程以 SystemAware 运行,WinForms `Screen.Bounds` 对非系统 DPI 的显示器返回 DPI 虚拟化坐标(例如副屏物理 1600x2560@150% 在系统 DPI=125% 下被压缩为 1333x2133,屏幕原点也按 0.833 缩放),而 `EdgeOverlayWindow` 用 `SetWindowPos` 按物理像素定位,二者不一致导致副屏 overlay 的尺寸与位置均错误,落在副屏内偏右下、紧贴主屏边缘,视觉上即"副屏没有呼吸,主屏侧边多了一块频闪边框"。现新增 `ElasticBreath.App/app.manifest` 声明 `PerMonitorV2`,使 `Screen.Bounds`、`SetWindowPos` 与 `UpdateLayeredWindow` 位图统一使用物理像素,副屏窗口精确全屏覆盖对应显示器;`ToastWindow.ShowMessage` 与 `CornerIndicatorWindow.ShowAt` 增加 `dpiScale` 参数(由 `Win32Native.GetDpiScaleForScreen` 经 `MonitorFromPoint`/`GetDpiForMonitor` 查询),把物理像素换算为 WPF DIP 后再设置 `Left`/`Top`,避免 PMv2 下这两个 WPF 窗口错位;`SecondaryMonitorFlashService` 新增 `CloseStaleWindows` 关闭已从系统移除的显示器对应的残留窗口。同步补充 `SECURITY.md` 两个只读 DPI 查询调用的边界说明与 `ARCHITECTURE.md` §8"多屏 DPI"小节。
 - 修复边缘光晕渐变失效(实机表现为"透明度一样、渐变消失"):`UpdateLayeredWindow` 使用 `AC_SRC_ALPHA`(premultiplied alpha)模式,但 `EdgeOverlayPixelRenderer.Render` 写入的是 straight alpha(RGB 未乘以 alpha),导致 alpha 变化对最终显示颜色几乎无影响。现统一输出 premultiplied BGRA,四边渐变从边缘高亮平滑过渡到背景色;同步更新 `BlendPixel`(premultiplied over 操作)与 `DemoRenderer.CompositeOnto`(premultiplied over),保证实机与离线截图一致。
 - 修复"暂停提醒"按钮误切到空闲态:`BreathEngine.SetRemindersPaused(true)` 原实现调用 `StopToIdle()`,导致界面显示"空闲"且清零周期计时(而状态机中不存在"工作中无操作自动转空闲"的规则,空闲会在用户操作后自动转回工作)。现改为无论当前状态如何均进入"暂停"状态并记住暂停前状态;点击"恢复提醒"时回到暂停前状态(工作→工作、休息→休息、其余回空闲)。同步更新引擎注释与 4 个状态机测试用例。
 - 功能说明窗口恢复"关键设计"中遗漏的角落悬停说明(新手误删):补齐"把鼠标移到屏幕任一角停留约 1.5 秒,出现倒计时圆环填满即切换"及"触发后需移出角落区域才能再次触发"两条,zh-CN/en-US 对称同步。

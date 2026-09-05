@@ -5,6 +5,15 @@ namespace ElasticBreath.App.Interop;
 
 /// <summary>
 /// 封装常用 Win32 API 调用，用于窗口操作、输入检测和分层窗口支持。
+/// <para>P/Invoke 登记表（新增 P/Invoke 必须在此登记，并同步 SECURITY.md）：</para>
+/// <list type="bullet">
+/// <item>输入检测：GetLastInputInfo / GetCursorPos（只读时间戳与光标坐标）</item>
+/// <item>前台窗口检测：GetForegroundWindow / GetWindowThreadProcessId / GetWindowRect（只读句柄与矩形）</item>
+/// <item>显示器 DPI 查询：MonitorFromPoint / GetDpiForMonitor（只读显示器 DPI，用于物理像素与 WPF DIP 换算）</item>
+/// <item>窗口样式与定位：GetWindowLongPtr / SetWindowLongPtr / SetWindowPos / ForceTopmost / SetClickThroughNoActivate / SetLayered / SetWindowBoundsPixels</item>
+/// <item>Layered Window 渲染：CreateDIBSection / UpdateLayeredWindow / GDI 对象销毁</item>
+/// <item>任务栏闪烁：FlashWindowEx（全屏回退提示）</item>
+/// </list>
 /// </summary>
 internal static class Win32Native
 {
@@ -26,6 +35,11 @@ internal static class Win32Native
     private static readonly IntPtr HwndTopmost = new(-1);
     // 特殊的窗口句柄值，用于将窗口移出置顶状态
     private static readonly IntPtr HwndNoTopmost = new(-2);
+
+    // MonitorFromPoint 标志：找不到完全匹配的显示器时返回最近的显示器
+    private const uint MonitorDefaultToNearest = 2;
+    // GetDpiForMonitor 的 DPI 类型：有效 DPI（与系统缩放设置一致）
+    private const int MdtEffectiveDpi = 0;
 
     // 用于获取系统最后输入信息的结构体
     [StructLayout(LayoutKind.Sequential)]
@@ -185,6 +199,52 @@ internal static class Win32Native
         // 计算时间差，同样使用 unchecked 处理可能的环绕（wrap-around）情况
         var elapsed = unchecked(nowTick - lastTick);
         return TimeSpan.FromMilliseconds(elapsed);
+    }
+
+    /// <summary>
+    /// 获取包含指定屏幕坐标点的显示器句柄。
+    /// </summary>
+    /// <param name="pt">屏幕物理坐标点。</param>
+    /// <param name="dwFlags">匹配失败时的回退策略（MONITOR_DEFAULTTONEAREST 等）。</param>
+    /// <returns>显示器句柄（HMONITOR）；失败时返回 IntPtr.Zero。</returns>
+    [DllImport("user32.dll")]
+    private static extern IntPtr MonitorFromPoint(Point pt, uint dwFlags);
+
+    /// <summary>
+    /// 查询指定显示器的 DPI（只读，用于物理像素与 WPF DIP 的换算）。
+    /// </summary>
+    /// <param name="hmonitor">MonitorFromPoint 返回的显示器句柄。</param>
+    /// <param name="dpiType">DPI 类型（MDT_EFFECTIVE_DPI）。</param>
+    /// <param name="dpiX">水平 DPI。</param>
+    /// <param name="dpiY">垂直 DPI。</param>
+    /// <returns>S_OK 为 0，失败返回非零 HRESULT。</returns>
+    [DllImport("shcore.dll")]
+    private static extern int GetDpiForMonitor(IntPtr hmonitor, int dpiType, out uint dpiX, out uint dpiY);
+
+    /// <summary>
+    /// 获取指定显示器边界（物理像素）所在显示器的有效 DPI 缩放系数（96 DPI 为基准 1.0）。
+    /// 用于将物理像素坐标换算为 WPF 设备无关单位（DIP）。
+    /// </summary>
+    public static double GetDpiScaleForScreen(Rectangle screenBoundsPx)
+    {
+        // 用屏幕中心点所属的显示器来确定 DPI，避免边缘点归属歧义
+        var center = new Point
+        {
+            X = screenBoundsPx.Left + (screenBoundsPx.Width / 2),
+            Y = screenBoundsPx.Top + (screenBoundsPx.Height / 2)
+        };
+        var monitor = MonitorFromPoint(center, MonitorDefaultToNearest);
+        if (monitor == IntPtr.Zero)
+        {
+            return 1.0;
+        }
+
+        if (GetDpiForMonitor(monitor, MdtEffectiveDpi, out var dpiX, out _) != 0 || dpiX == 0)
+        {
+            return 1.0;
+        }
+
+        return dpiX / 96.0;
     }
 
     /// <summary>

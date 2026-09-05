@@ -61,16 +61,6 @@ public sealed class DisplayTargetService
     }
 
     /// <summary>
-    /// 检查当前光标位置是否位于指定屏幕的边界内。
-    /// </summary>
-    public bool IsCursorOnScreen(Forms.Screen screen)
-    {
-        // 获取当前光标位置，并检查是否在指定屏幕的边界内
-        var cursor = Forms.Cursor.Position;
-        return screen.Bounds.Contains(cursor);
-    }
-
-    /// <summary>
     /// 检查前台窗口是否全屏覆盖指定屏幕。
     /// </summary>
     /// <param name="targetScreen">目标屏幕</param>

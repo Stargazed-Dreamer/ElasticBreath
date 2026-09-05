@@ -27,16 +27,25 @@ public partial class ToastWindow : Window
     /// 在指定目标矩形附近显示一个Toast消息。
     /// </summary>
     /// <param name="message">要显示的提示文本。</param>
-    /// <param name="targetBounds">用于定位Toast的目标区域矩形。</param>
-    public void ShowMessage(string message, Rect targetBounds)
+    /// <param name="targetBounds">用于定位Toast的目标区域矩形（物理像素）。</param>
+    /// <param name="dpiScale">目标显示器的 DPI 缩放系数（96 DPI 为 1.0），用于物理像素到 WPF DIP 的换算。</param>
+    public void ShowMessage(string message, Rect targetBounds, double dpiScale)
     {
         // 设置提示文本内容。
         ToastText.Text = message;
 
+        // 物理像素 → WPF DIP，布局计算统一在 DIP 空间进行
+        var scale = dpiScale <= 0 ? 1.0 : dpiScale;
+        var bounds = new Rect(
+            targetBounds.Left / scale,
+            targetBounds.Top / scale,
+            targetBounds.Width / scale,
+            targetBounds.Height / scale);
+
         // 计算Toast窗口的最终左侧位置（水平居中对齐于目标区域右侧，并留出边距）。
-        var finalLeft = targetBounds.Right - Width - 24;
+        var finalLeft = bounds.Right - Width - 24;
         // 计算Toast窗口的顶部位置（紧贴目标区域底部上方，并留出边距）。
-        var top = targetBounds.Bottom - Height - 24;
+        var top = bounds.Bottom - Height - 24;
         // 先将窗口移动到进入动画的起始位置（在最终位置右侧44像素处）。
         Left = finalLeft + 44;
         Top = top;

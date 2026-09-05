@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<assembly manifestVersion="1.0" xmlns="urn:schemas-microsoft-com:asm.v1">
+  <application xmlns="urn:schemas-microsoft-com:asm.v3">
+    <windowsSettings>
+      <!-- 声明 PerMonitorV2：多屏异 DPI 下 Screen.Bounds / SetWindowPos / 位图渲染均使用物理像素，
+           保证副屏呼吸边框窗口精确全屏覆盖（SystemAware 下坐标被 DPI 虚拟化会错位）。 -->
+      <dpiAwareness xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">PerMonitorV2</dpiAwareness>
+    </windowsSettings>
+  </application>
+</assembly>

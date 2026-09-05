@@ -54,19 +54,20 @@ public partial class CornerIndicatorWindow : Window
     /// 在屏幕左上角显示圆并更新悬停进度。
     /// 首次显示时播放弹性胀大动画；后续调用仅更新颜色（灰→绿渐变）。
     /// </summary>
-    /// <param name="leftPx">目标屏幕左上角 X（像素）</param>
-    /// <param name="topPx">目标屏幕左上角 Y（像素）</param>
+    /// <param name="leftPx">目标屏幕左上角 X（物理像素）</param>
+    /// <param name="topPx">目标屏幕左上角 Y（物理像素）</param>
     /// <param name="progress">悬停进度 0.0~1.0</param>
-    public void ShowAt(int leftPx, int topPx, double progress)
+    /// <param name="dpiScale">目标显示器的 DPI 缩放系数（96 DPI 为 1.0）</param>
+    public void ShowAt(int leftPx, int topPx, double progress, double dpiScale)
     {
         if (!_visible)
         {
             _visible = true;
             Show();
-            // 像素坐标 → WPF 设备无关单位（适配不同 DPI）
-            var dpi = VisualTreeHelper.GetDpi(this);
-            Left = leftPx / dpi.DpiScaleX;
-            Top = topPx / dpi.DpiScaleY;
+            // 物理像素 → WPF 设备无关单位（适配不同 DPI）
+            var scale = dpiScale > 0 ? dpiScale : 1.0;
+            Left = leftPx / scale;
+            Top = topPx / scale;
             StartAppearAnimation();
         }
 

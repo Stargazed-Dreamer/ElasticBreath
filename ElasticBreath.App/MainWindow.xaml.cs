@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
 using ElasticBreath.App.Domain;
+using ElasticBreath.App.Interop;
 using ElasticBreath.App.Services;
 using ElasticBreath.App.UI;
 using ElasticBreath.Rendering;
@@ -305,10 +306,11 @@ public partial class MainWindow : Window
             return;
         }
 
-        // 获取目标显示屏幕的边界
+        // 获取目标显示屏幕的边界（物理像素）与该屏的 DPI 缩放
         var targetScreen = _displayTargetService.GetTargetScreen(_settings.PreferredDisplay);
         var b = targetScreen.Bounds;
         var bounds = new Rect(b.Left, b.Top, b.Width, b.Height);
+        var dpiScale = Win32Native.GetDpiScaleForScreen(b);
         // 获取当前光标位置
         var cursor = Forms.Cursor.Position;
 
@@ -316,7 +318,7 @@ public partial class MainWindow : Window
         var hover = _cornerTrigger.GetHoverProgress(_settings.CornerHoverDuration);
         if (hover.Corner is not null)
         {
-            _cornerIndicator.ShowAt(b.Left, b.Top, hover.Progress);
+            _cornerIndicator.ShowAt(b.Left, b.Top, hover.Progress, dpiScale);
         }
         else
         {
@@ -329,11 +331,12 @@ public partial class MainWindow : Window
             // 触发角落状态转换
             var state = _engine.TriggerCornerTransition();
             // 切换完成：指示圆保持全绿，直到鼠标移出左上角
-            _cornerIndicator.ShowAt(b.Left, b.Top, 1.0);
+            _cornerIndicator.ShowAt(b.Left, b.Top, 1.0, dpiScale);
             // 显示状态切换的消息通知
             _toastWindow.ShowMessage(
                 _localization.Tf("notify.corner_switched", ResolveStateText(state)),
-                new Rect(b.Left, b.Top, b.Width, b.Height));
+                bounds,
+                dpiScale);
         }
     }
 
@@ -494,13 +497,13 @@ public partial class MainWindow : Window
             _settings.OverlayOpacity, // 覆盖窗口不透明度
             hideForFullscreen); // 是否因全屏而隐藏
 
-        // 更新二级闪光服务（可能用于额外视觉提示）
+        // 更新副屏呼吸提醒：鼠标不在主控屏时，在鼠标所在的副屏上显示与主屏一致的呼吸边框
         _secondaryFlashService.Update(
             _settings, // 应用设置
-            targetScreen, // 目标屏幕
+            targetScreen, // 主控屏（主呼吸浮层所在屏）
             overlayState, // 覆盖状态
-            hideForFullscreen || !_settings.EnableEdgeGlow, // 满足隐藏条件或未启用边缘发光时禁用闪光
-            !_displayTargetService.IsCursorOnScreen(targetScreen)); // 判断鼠标光标是否不在目标屏幕上
+            hideForFullscreen || !_settings.EnableEdgeGlow, // 满足隐藏条件或未启用边缘发光时抑制
+            ResolveGlowThickness(snapshot)); // 与主浮层一致的光晕厚度
     }
 
     /// <summary>
