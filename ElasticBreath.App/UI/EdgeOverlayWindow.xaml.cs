@@ -256,8 +256,8 @@ public partial class EdgeOverlayWindow : Window
                 _glowThickness, _enableEdgeGlow, _showTopProgress, _topProgressRatio);
         }
 
-        /* 提交到 Layered Window */
-        Win32Native.RenderLayeredWindow(_hwnd, _hBitmap, _pixels, _bitmapWidth, _bitmapHeight);
+        /* 提交到 Layered Window：pptDst 同时承担定位职责，必须传目标屏幕原点 */
+        Win32Native.RenderLayeredWindow(_hwnd, _hBitmap, _pixels, _bitmapWidth, _bitmapHeight, _boundsPx.Left, _boundsPx.Top);
     }
 
     /// <summary>确保 DIB Section 位图尺寸与屏幕匹配</summary>

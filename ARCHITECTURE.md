@@ -261,7 +261,9 @@ background[i] = (byte)Math.Min(255, overlay[i] + (background[i] * inv) / 255);
 
 **热插拔**：`Screen.AllScreens` 在每次更新时实时枚举，因此插拔显示器会自动适配；多变单时副屏窗口会被显式隐藏，已移除显示器对应的残留窗口会被关闭，无残留闪烁。
 
-**多屏 DPI**：应用通过 `app.manifest` 声明 `PerMonitorV2`。异 DPI 多屏下 `Screen.Bounds`、`SetWindowPos` 与 `UpdateLayeredWindow` 位图均使用物理像素，保证副屏呼吸窗口精确全屏覆盖对应显示器（历史上无 manifest 时进程为 SystemAware，`Screen.Bounds` 被 DPI 虚拟化，副屏窗口会错位到主屏侧边并残留一块闪烁边框——1.0 前多屏 bug 的根因）。WPF 定位的窗口（`ToastWindow` / `CornerIndicatorWindow`）通过 `Win32Native.GetDpiScaleForScreen` 把物理像素换算为 DIP 后再设置 `Left`/`Top`。
+**多屏 DPI**：应用通过 `app.manifest` 声明 `PerMonitorV2`。异 DPI 多屏下 `Screen.Bounds`、`SetWindowPos` 与 `UpdateLayeredWindow` 位图均使用物理像素，保证副屏呼吸窗口精确全屏覆盖对应显示器；WPF 定位的窗口（`ToastWindow` / `CornerIndicatorWindow`）通过 `Win32Native.GetDpiScaleForScreen` 把物理像素换算为 DIP 后再设置 `Left`/`Top`。
+
+**Layered Window 定位约定（避坑）**：`UpdateLayeredWindow` 的 `pptDst` 参数是分层窗口的**新屏幕位置**，不只是内容偏移——`RenderLayeredWindow` 每帧都会以它重设窗口位置。必须传入目标屏幕的真实物理原点；若传 `(0,0)`，主屏 overlay 恰好"碰对"位置而从不出错，任何非原点位置的副屏 overlay 则会被每帧拽回主屏左上角（1.0 前多屏 bug 的第二个根因，极具迷惑性）。
 
 ## 9. 异常与崩溃保护
 

@@ -420,15 +420,19 @@ internal static class Win32Native
     }
 
     /// <summary>使用 UpdateLayeredWindow 将 ARGB 位图渲染到 Layered Window</summary>
-    public static void RenderLayeredWindow(IntPtr hwnd, IntPtr hBitmap, IntPtr pixels, int width, int height)
+    /// <remarks>
+    /// pptDst 是分层窗口的新屏幕位置（物理像素）：每帧提交都会以该坐标重设窗口位置，
+    /// 必须传目标屏幕的真实原点；传 (0,0) 会把副屏窗口拽回主屏左上角。
+    /// </remarks>
+    public static void RenderLayeredWindow(IntPtr hwnd, IntPtr hBitmap, IntPtr pixels, int width, int height, int x, int y)
     {
         // 创建一个与屏幕兼容的内存设备上下文
         var hdcSrc = CreateCompatibleDC(IntPtr.Zero);
         // 将位图选入内存DC，并保存之前的对象以便恢复
         var oldBmp = SelectObject(hdcSrc, hBitmap);
 
-        // 设置目标窗口位置和大小参数（通常为原点，因为窗口位置由SetWindowPos等单独控制）
-        var ptDst = new Point { X = 0, Y = 0 };
+        // 目标窗口位置：分层窗口的屏幕坐标（物理像素），与尺寸一起原子性提交
+        var ptDst = new Point { X = x, Y = y };
         var size = new Size { cx = width, cy = height };
         // 设置源图像在内存DC中的起始点
         var ptSrc = new Point { X = 0, Y = 0 };
