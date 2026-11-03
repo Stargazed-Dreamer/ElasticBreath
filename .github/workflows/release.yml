@@ -39,6 +39,27 @@ jobs:
           body: |
             ## ElasticBreath ${{ github.ref_name }}
 
-            Portable single-file build (framework-dependent; .NET 8 desktop runtime required).
+            ### 运行要求 / Requirements
 
-            See [CHANGELOG](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.
+            | 项目 | 要求 |
+            |---|---|
+            | 操作系统 | Windows 10 / 11 64-bit (x64) |
+            | 运行时 | **.NET 8 Desktop Runtime (x64)** —— 必需，本包不含运行时 |
+
+            本包是**框架依赖（framework-dependent）**的单文件便携版，未内置 .NET 运行时，首次运行前需先安装
+            **.NET 8 Desktop Runtime (x64)**（不是 ASP.NET Core Runtime，也不是仅 SDK）：
+
+            - 下载：<https://dotnet.microsoft.com/download/dotnet/8.0> → “.NET Desktop Runtime 8.x” → Windows x64
+            - 或命令行：`winget install Microsoft.DotNet.DesktopRuntime.8`
+            - 校验：`dotnet --list-runtimes` 输出中应包含 `Microsoft.WindowsDesktop.App 8.x`
+
+            缺运行时时双击 `ElasticBreath.exe` 会提示需要 .NET，程序本身不会联网下载任何东西。
+
+            ### 使用 / Usage
+
+            下载 `ElasticBreath-portable-${{ github.ref_name }}.zip`，解压到任意目录（建议固定路径），双击 `ElasticBreath.exe`。
+            不写注册表、不需要管理员权限；配置存于程序目录下 `config/settings.json`，崩溃日志写入 `%TEMP%\ElasticBreath\crash\`，均不上传。
+
+            ### 变更 / Changes
+
+            见 [CHANGELOG](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)。

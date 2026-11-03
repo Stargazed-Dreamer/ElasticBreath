@@ -37,7 +37,7 @@ dotnet run --project ElasticBreath.App/ElasticBreath.App.csproj
 ./scripts/build-release.ps1
 ```
 
-> **系统要求**：Windows 10 / 11 64-bit，.NET 8 运行时（使用自包含发布版时无需单独安装）。
+> **系统要求**：Windows 10 / 11 64-bit (x64)，**.NET 8 Desktop Runtime (x64)**。Releases 中的便携版为框架依赖单文件发布，不含运行时，首次运行前需先安装（下载 <https://dotnet.microsoft.com/download/dotnet/8.0>，或执行 `winget install Microsoft.DotNet.DesktopRuntime.8`）。
 
 ## 3. 主窗口详解
 

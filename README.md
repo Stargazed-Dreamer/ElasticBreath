@@ -55,8 +55,11 @@
 
 ## 系统要求
 
-- 操作系统：Windows 10 / 11 64-bit
-- 运行时：.NET 8 运行时（使用自包含发布版时无需单独安装运行时）
+- 操作系统：Windows 10 / 11 64-bit（x64）
+- 运行时：**.NET 8 Desktop Runtime (x64)**。Releases 中的便携版是框架依赖（framework-dependent）单文件发布，**不含运行时**，首次运行前需先安装：
+  - 下载：<https://dotnet.microsoft.com/download/dotnet/8.0>（选 “.NET Desktop Runtime 8.x” 的 Windows x64 安装包）
+  - 或命令行：`winget install Microsoft.DotNet.DesktopRuntime.8`
+  - 若从源码构建运行，则只需 .NET 8 SDK（更高版本 SDK 也可，`global.json` 的 `rollForward` 为 `latestMajor`）
 
 ## 快速开始
 
@@ -71,7 +74,7 @@ dotnet run --project ElasticBreath.App/ElasticBreath.App.csproj
 
 **方式二：下载便携版**
 
-从 Releases 页面下载便携版 zip，解压后直接运行 `ElasticBreath.exe`，无需安装。
+从 Releases 页面下载便携版 zip，解压后直接运行 `ElasticBreath.exe`，无需安装（运行前需已装好上面的 .NET 8 Desktop Runtime）。
 
 ## 配置说明
 
