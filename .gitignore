@@ -37,6 +37,8 @@ Desktop.ini
 ## 本地快捷方式与设计稿（开发机私有，不应入库）
 *.lnk
 *.url
+## 图标设计稿的导出副本（带 "-" 后缀），仅保留主稿入库
+ElasticBreath.App/Resource/*-.png
 
 ## 发布产物
 publish/
