@@ -6,7 +6,10 @@
 
 ## [Unreleased]
 
-暂无未发布改动。
+### Fixed
+
+- 便携包不再混入 `ElasticBreath.Rendering.pdb`:`ElasticBreath.Rendering` 改为 `DebugType=embedded`,调试符号内嵌进程序集,发布目录不再多出一份独立的 PDB 文件。
+- 修正文档中的可执行文件名:README 与 Release 说明原写作 `ElasticBreath.exe`,实际发布产物为 `ElasticBreath.App.exe`(与 USER_GUIDE 保持一致)。
 
 ## [1.1.0] - 2026-11-03
 

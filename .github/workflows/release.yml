@@ -53,11 +53,11 @@ jobs:
             - 或命令行：`winget install Microsoft.DotNet.DesktopRuntime.8`
             - 校验：`dotnet --list-runtimes` 输出中应包含 `Microsoft.WindowsDesktop.App 8.x`
 
-            缺运行时时双击 `ElasticBreath.exe` 会提示需要 .NET，程序本身不会联网下载任何东西。
+            缺运行时时双击 `ElasticBreath.App.exe` 会提示需要 .NET，程序本身不会联网下载任何东西。
 
             ### 使用 / Usage
 
-            下载 `ElasticBreath-portable-${{ github.ref_name }}.zip`，解压到任意目录（建议固定路径），双击 `ElasticBreath.exe`。
+            下载 `ElasticBreath-portable-${{ github.ref_name }}.zip`，解压到任意目录（建议固定路径），双击 `ElasticBreath.App.exe`。
             不写注册表、不需要管理员权限；配置存于程序目录下 `config/settings.json`，崩溃日志写入 `%TEMP%\ElasticBreath\crash\`，均不上传。
 
             ### 变更 / Changes

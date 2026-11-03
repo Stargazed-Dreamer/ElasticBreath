@@ -74,7 +74,7 @@ dotnet run --project ElasticBreath.App/ElasticBreath.App.csproj
 
 **方式二：下载便携版**
 
-从 Releases 页面下载便携版 zip，解压后直接运行 `ElasticBreath.exe`，无需安装（运行前需已装好上面的 .NET 8 Desktop Runtime）。
+从 Releases 页面下载便携版 zip，解压后直接运行 `ElasticBreath.App.exe`，无需安装（运行前需已装好上面的 .NET 8 Desktop Runtime）。
 
 ## 配置说明
 
