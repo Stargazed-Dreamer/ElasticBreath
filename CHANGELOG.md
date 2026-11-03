@@ -6,7 +6,11 @@
 
 ## [Unreleased]
 
-本次维护阶段正在进行中的改动。
+暂无未发布改动。
+
+## [1.1.0] - 2026-11-03
+
+`1.0.0` 之后的体验收敛:暂停态转为无声视觉、强提醒的边缘光晕加倍,并修复多屏异 DPI 场景下的副屏定位与 DPI 感知问题。
 
 ### Added
 
@@ -29,6 +33,8 @@
 - 抽取边缘覆盖层像素渲染逻辑到独立项目 `ElasticBreath.Rendering`(`EdgeOverlayPixelRenderer`):主应用 Layered Window 与离线截图工具共用同一份渲染代码,保证实机与截图像素级一致;`EdgeOverlayWindow.xaml.cs` 改为委托调用,删除原内联的 `FillPixels`/`DrawProgressBar`/`BlendPixel`/`ResolveVisual`。
 - 暂停态移除灰色边缘光晕:`EdgeOverlayPixelRenderer.ResolveVisual` 对 `Paused` 状态改为返回 `default`(等同 `Hidden`),不再绘制灰色边框。灰色弱视觉反而显得突兀,暂停时保持无视觉干扰更自然。同步更新 design.md / USER_GUIDE.md 中暂停态视觉描述。
 - 多屏行为改为"双屏同步呼吸":副屏提示不再以 700ms 硬切频闪,`SecondaryMonitorFlashService` 改为当鼠标不在主控屏时,仅在鼠标实际所在的副屏显示与主浮层一致的呼吸边框(覆盖状态与光晕厚度 `ResolveGlowThickness` 均同步);设置项 `settings.secondary_flash` 文案改为"副屏同步呼吸提醒";新增纯决策函数 `ResolveVisibleState` 并补充 xUnit 用例。同步更新 design.md §5.5/§8.3,USER_GUIDE.md §8/§9.4,ARCHITECTURE.md §2.2/§2.4/§8,i18n zh-CN/en-US 的 `settings.secondary_flash` 与 help.body 多屏段落。
+- 默认最大边缘厚度由 `80px` 提高到 `160px`:强提醒(工作硬性/休息超时)的视觉冲击更明显;`ElasticBreathSettings.Sanitize` 允许范围 `12~600` 不变,离线演示图按实机一半比例改用 `thickness=80`。同步更新 design.md / USER_GUIDE.md。
+- 明确框架依赖发布的运行时前提:README 与 USER_GUIDE 的"系统要求"改为直接写明需要 **.NET 8 Desktop Runtime (x64)**(Releases 中的便携版为框架依赖单文件发布,不含运行时),并补上下载地址与 `winget install Microsoft.DotNet.DesktopRuntime.8` 一行命令;同时补上 Release 说明中的中英双语运行要求。
 
 ### Fixed
 
