@@ -7,6 +7,8 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <IsPackable>false</IsPackable>
     <NoWarn>CA1707</NoWarn>
+    <!-- 调试符号内嵌进程序集，避免发布目录里多出一份 *Rendering.pdb 被打进便携包 -->
+    <DebugType>embedded</DebugType>
   </PropertyGroup>
 
 </Project>
